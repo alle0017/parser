@@ -69,8 +69,8 @@ export class Program {
        *
        * @private
        */
-      private createBasicBlock(curr: Instruction[], map: Map<Instruction, BasicBlock>) {
-            const block = new BasicBlock(curr);
+      private createBasicBlock(idx: number, curr: Instruction[], map: Map<Instruction, BasicBlock>) {
+            const block = new BasicBlock(curr, idx);
             for (let i = 0; i < curr.length; i++) {
                   map.set(curr[i], block);
             }
@@ -93,20 +93,22 @@ export class Program {
             const bb: BasicBlock[] = [];
             const map: Map<Instruction, BasicBlock> = new Map();
             let curr: Instruction[] = []
+            let idx = 0;
 
 
             for (let i = 0; i < this.cfg.length - 1; i++) {
                   curr.push(this.cfg[i]);
                   if (curr.length > 0 && (this.cfg[i].next.size != 1 || !this.cfg[i].next.has(this.cfg[i + 1]) || this.cfg[i].predecessors.size != 1)) {
-                        const block = this.createBasicBlock(curr, map);
+                        const block = this.createBasicBlock(idx, curr, map);
+                        idx++;
                         bb.push(block);
                         curr = [];
                   }
             }
 
             curr.push(this.cfg.at(-1)!);
-            const block = this.createBasicBlock(curr, map);
+            const block = this.createBasicBlock(idx, curr, map);
             bb.push(block);
             return bb;
-      }      
+      }   
 }

@@ -16,7 +16,7 @@ export class BasicBlock {
        *
        * @param instructions - contiguous instructions comprising the block
        */
-      constructor(private readonly instructions: Instruction[]) {}
+      constructor(private readonly instructions: Instruction[], private readonly index: number) {}
 
       /**
        * Link `bb` as a successor of this block and update the successor's
@@ -38,6 +38,28 @@ export class BasicBlock {
        * @returns Multi-line string for the block contents
        */
       public toString() {
-            return this.instructions.map(instr => instr.toString()).join('\n');
+            return `Assigned {${this.getAssignedVariables().join()}}\nUsed {${this.getUsedVariables().join()}}\n${this.instructions.map(instr => instr.toString()).join('\n')}`;
+      }
+
+      public getUsedVariables(): string[] {
+            const set: Set<string> = new Set();
+            for (let i = 0; i < this.instructions.length; i++) {
+                  this.instructions[i].getUsedVariables().forEach(val => set.add(val));
+            }
+            return [...set];
+      }
+      public getAssignedVariables(): string[] {
+            const set: Set<string> = new Set();
+            for (let i = 0; i < this.instructions.length; i++) {
+                  this.instructions[i].getAssignedVariables().forEach(val => set.add(val));
+            }
+            return [...set];
+      }
+
+      public dominates(bb: BasicBlock) {
+            return this.index < bb.index;
+      }
+      public isDominatedBy(bb: BasicBlock) {
+            return this.index > bb.index;
       }
 }
