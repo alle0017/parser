@@ -43,7 +43,6 @@ deno run demos/if_basic_blocks.ts
 Development notes
 -
 - The codebase is modular: `src/ast` contains AST node types and converters; `parser/` contains parsing and tokenization logic. Use the demos as quick integration checks when making changes.
-- Add unit tests or small runners if you plan to extend parsing rules or token types.
 - If adapting to Node.js, compile or run TypeScript with an appropriate toolchain (tsc + node or ts-node), and adjust any Deno-specific imports.
 
 Contributing
