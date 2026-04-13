@@ -1,14 +1,42 @@
 import type { Instruction } from "./instruction.ts";
+
+/**
+ * BasicBlock groups a contiguous sequence of `Instruction` objects and
+ * tracks control-flow relationships between blocks (`next` and
+ * `predecessors`). Instances are typically produced when splitting a
+ * linear instruction stream into basic blocks.
+ */
 export class BasicBlock {
+      /** Successor basic blocks in the control-flow graph. */
       public readonly next: Set<BasicBlock> = new Set();
+      /** Predecessor basic blocks in the control-flow graph. */
       public readonly predecessors: Set<BasicBlock> = new Set();
+      /**
+       * Create a `BasicBlock` wrapping the provided instructions.
+       *
+       * @param instructions - contiguous instructions comprising the block
+       */
       constructor(private readonly instructions: Instruction[]) {}
 
+      /**
+       * Link `bb` as a successor of this block and update the successor's
+       * predecessor set.
+       *
+       * @param bb - successor basic block to add
+       * @returns `this` for chaining
+       */
       public setNext(bb: BasicBlock) {
             this.next.add(bb);
             bb.predecessors.add(this);
             return this;
       }    
+
+      /**
+       * Render the block by concatenating the textual representation of
+       * its contained instructions.
+       *
+       * @returns Multi-line string for the block contents
+       */
       public toString() {
             return this.instructions.map(instr => instr.toString()).join('\n');
       }
