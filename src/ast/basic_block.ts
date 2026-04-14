@@ -38,7 +38,7 @@ export class BasicBlock {
        * @returns Multi-line string for the block contents
        */
       public toString() {
-            return `Assigned {${this.getAssignedVariables().join()}}\nUsed {${this.getUsedVariables().join()}}\n${this.instructions.map(instr => instr.toString()).join('\n')}`;
+            return `${this.instructions.map(instr => instr.toString()).join('\n')}`;
       }
 
       public getUsedVariables(): string[] {
@@ -61,5 +61,18 @@ export class BasicBlock {
       }
       public isDominatedBy(bb: BasicBlock) {
             return this.index > bb.index;
+      }
+
+      toMermaidDiagram(traversed: Set<BasicBlock> = new Set()): string {
+            let diagram = `\nBLOCK_${this.index}["${this.toString()}"]`;
+
+            for (const bb of this.next) {
+                  if (!traversed.has(bb)) {
+                        traversed.add(bb);
+                        diagram += bb.toMermaidDiagram(traversed);
+                  }
+                  diagram += `\nBLOCK_${this.index} -- from ${this.index} goto ${bb.index} --> BLOCK_${bb.index}`
+            }
+            return diagram;
       }
 }

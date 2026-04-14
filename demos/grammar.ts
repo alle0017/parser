@@ -2,13 +2,14 @@ import { Instruction, FlowInstruction } from "../src/ast/instruction.ts";
 import { Traverse } from "../src/ast/traverse.ts";
 import { Grammar, GrammarApplication } from "../src/grammar.ts";
 import type { PRule, RRule } from "../src/parser/index.d.ts";
+import { toMermaidDiagram } from '../src/ast/program.ts';
 
 class AllocInstr extends Instruction {
       constructor(private readonly name: string, private readonly type: string) {
             super();
       }
       public override toString(): string {
-        return `@@alloc ${this.type}(${this.name})`;
+        return `ADD STACK_PTR, STACK_PTR, sizeof(${this.type}) @${this.name}`;
       }
       public override getUsedVariables(): string[] {
             return [this.name];
@@ -22,8 +23,20 @@ class BranchInstr extends Instruction {
             super();
             this.addSuccessor(branch);
       }
+      private getAsmOp(): string {
+            switch (this.op) {
+                  case '==': return 'BEQ';
+                  case '>=': return 'BGE'
+                  case '<=': return 'BLE'
+                  case '!=': return 'BNE'
+                  case '>': return 'BGT'
+                  case '<': return 'BLT'
+                  default: return 'JMP'
+            }
+      }
       public override toString() {
-            return `BRANCH(${this.op}) ${this.op1}, ${this.op2}, ${this.branch.toString()}`
+            
+            return `${this.getAsmOp()} ${this.op1}, ${this.op2}, ${this.branch.toString()}`
       }
       public override getAssignedVariables(): string[] {
             return [];
@@ -225,4 +238,4 @@ class AggregatorGrammar extends Grammar {
 
 const grammar = new GrammarApplication('-', 'GLOB').addGrammar(new StructGrammar()).addGrammar(new ConditionGrammar()).addGrammar(new AggregatorGrammar());
 grammar.execute('type Struct { id: int, value: string } if id == id1 { y1 = 9 } else { y1 = 51, x = y1 } type Canary_Only { id: int } if id == id1 { y1 = 9 } if id == id1 { y1 = 9 }')
-console.log(grammar.program.toBasicBlocks().map(bb => bb.toString()).join('\n\n'))
+console.log(toMermaidDiagram(grammar.program))

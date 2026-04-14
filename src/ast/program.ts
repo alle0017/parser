@@ -42,7 +42,7 @@ export class Program {
       private setBBNext(instr: Instruction, block: BasicBlock, map:  Map<Instruction, BasicBlock>) {
             const bb = map.get(instr);
 
-            if (!bb) {
+            if (!bb || bb == block) {
                   return;
             }
             block.setNext(bb);
@@ -56,7 +56,7 @@ export class Program {
       private setBBPrev(instr: Instruction, block: BasicBlock, map:  Map<Instruction, BasicBlock>) {
             const bb = map.get(instr);
 
-            if (!bb) {
+            if (!bb || bb == block) {
                   return;
             }
             bb.setNext(block);
@@ -78,7 +78,9 @@ export class Program {
             const last = curr.at(-1)!;
 
             first.predecessors.forEach(instr => this.setBBPrev(instr, block, map));
+            first.next.forEach(instr => this.setBBNext(instr, block, map));
             last.next.forEach(instr => this.setBBNext(instr, block, map));
+            last.predecessors.forEach(instr => this.setBBPrev(instr, block, map));
             return block;
       }
       /**
@@ -113,4 +115,8 @@ export class Program {
             bb.push(block);
             return bb;
       }   
+}
+
+export function toMermaidDiagram(program: Program) {
+      return `---\nconfig:\n layout: elk\n theme: redux\n---\nflowchart TD\n${program.toBasicBlocks()[0].toMermaidDiagram()}`;
 }
