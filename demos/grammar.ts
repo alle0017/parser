@@ -1,6 +1,5 @@
 import { Instruction } from "../src/ast/instruction.ts";
 import { Traverse } from "../src/ast/traverse.ts";
-import { TokenNotRecognizedError } from "../src/exceptions/token_not_recognized.ts";
 import { Grammar, GrammarApplication } from "../src/grammar.ts";
 import type { PRule, RRule } from "../src/parser/index.d.ts";
 
@@ -45,28 +44,19 @@ class StructGrammar extends Grammar {
       }
       public override convert(traverser: Traverse): void {
             traverser
-            .addConversion('ATTR_L', (self, token) => {
-                  if (!Array.isArray(token.$)) {
-                        throw new TokenNotRecognizedError(token);
-                  }
+            .addRecursiveConversion('ATTR_L', (self, token) => {
                   self.convert(token.$[0]);
                   if (token.$.length == 3) {
                         self.convert(token.$[2]);
                   }
             })
-            .addConversion('ATTR', (self, token) => {
-                  if (!Array.isArray(token.$)) {
-                        throw new TokenNotRecognizedError(token);
-                  }
+            .addRecursiveConversion('ATTR', (self, token) => {
                   const name = token.$[0].$ as string;
                   const type = token.$[2].$ as string;
             
                   self.program.addInstruction(new AllocInstr(name, type))
             })
-            .addConversion('STRUCT', (self, token) => {
-                  if (!Array.isArray(token.$)) {
-                        throw new TokenNotRecognizedError(token);
-                  }
+            .addRecursiveConversion('STRUCT', (self, token) => {
                   self.convert(token.$[3]);
                   self.program.addInstruction(new AllocInstr('%%canary', 'long'))
             });
@@ -74,5 +64,5 @@ class StructGrammar extends Grammar {
 }
 
 const grammar = new GrammarApplication('INIT', 'STRUCT').addGrammar(new StructGrammar());
-grammar.execute('type Struct { id: int, value: string /*hello comment!*/}')
+grammar.execute('type Struct { id: int, value: string }')
 console.log(grammar.program.toString())

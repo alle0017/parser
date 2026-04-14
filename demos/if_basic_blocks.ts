@@ -2,7 +2,6 @@ import { Tokenizer } from "../src/parser/tokenizer.ts";
 import { Reducer } from "../src/parser/reducer.ts";
 import { Traverse } from "../src/ast/traverse.ts";
 import { PRule, RRule } from "../src/parser/index.d.ts";
-import { TokenNotRecognizedError } from "../src/exceptions/index.ts";
 import { Instruction, FlowInstruction, } from "../src/ast/instruction.ts";
 
 
@@ -34,10 +33,7 @@ const tokens = new Tokenizer('if id == id1 { y1 = 9 } else { y1 = 51, x = y1 }')
 const ast = new Reducer('CODE', REDUCTION, GRAMMAR).reduce(tokens);
 
 const converter = new Traverse()
-.addConversion('CONDITION', (self, token) => {
-      if (!Array.isArray(token.$)) {
-            throw new TokenNotRecognizedError(token);
-      }
+.addRecursiveConversion('CONDITION', (self, token) => {
       const label = self.getContext<LabelInstr>('label');
       const op = token.$[1].$ as string;
       const var1 = token.$[0].$ as string;
@@ -46,10 +42,7 @@ const converter = new Traverse()
       const br = new BranchInstr(label, op, var1, var2);
       self.program.addInstruction(br);
 })
-.addConversion('CODE', (self, token) => {
-      if (!Array.isArray(token.$)) {
-            throw new TokenNotRecognizedError(token);
-      }
+.addRecursiveConversion('CODE', (self, token) => {
       const label = new LabelInstr();
 
       self.setContext('label', label);
@@ -70,26 +63,15 @@ const converter = new Traverse()
             self.program.addInstruction(jmpLabel);
       }
 })
-.addConversion('BLOCK', (self, token) => {
-      if (!Array.isArray(token.$)) {
-            throw new TokenNotRecognizedError(token);
-      }
-      return self.convert(token.$[1]);
-})
-.addConversion('EXPR_L', (self, token) => {
-      if (!Array.isArray(token.$)) {
-            throw new TokenNotRecognizedError(token);
-      }
+.addRecursiveConversion('BLOCK', (self, token) => self.convert(token.$[1]))
+.addRecursiveConversion('EXPR_L', (self, token) => {
       if (token.$.length == 1) {
             return self.convert(token.$[0]);
       }
       self.convert(token.$[0]);
       self.convert(token.$[2]);
 })
-.addConversion('EXPR', (self, token) => {
-      if (!Array.isArray(token.$)) {
-            throw new TokenNotRecognizedError(token);
-      }
+.addRecursiveConversion('EXPR', (self, token) => {
       const recipient = token.$[0].$ as string;
       const giver = token.$[2].$ as string;
       const live = self.getContext<Set<string>>('vars');
