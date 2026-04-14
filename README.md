@@ -1,50 +1,53 @@
 # parser
 
-Purpose
--
-This repository provides a small TypeScript-based parser framework and utilities for experimenting with tokenization, parsing, lookahead analysis, and AST construction. It's intended as an educational and experimental codebase for building and testing parser components (tokenizer, reducer, parser, AST traversals) and running small parser demos.
+A compact TypeScript parser framework and educational playground for
+tokenization, parsing, lookahead analysis, and AST construction. The
+codebase is organized so you can experiment with parser components and
+run small demos to validate behavior.
 
-General description
--
-- Language: TypeScript (designed to run with Deno in examples; can be adapted to other runtimes).
-- Structure: core parser logic lives under `src/` and `parser/`. Demos are in the `demos/` folder and showcase usage patterns.
-- Features:
-  - Tokenization and tokenizer utilities
-  - Parser and reducer modules
-  - Lookahead/analyzer utilities to inspect upcoming tokens
-  - AST node definitions and traversal/conversion helpers
-  - Custom exception types for parser error handling
+**Highlights**
+- Small, modular parser components (tokenizer, reducer, parser)
+- Lookahead analysis utilities to inspect upcoming tokens
+- AST types, converters and traversal helpers
+- Visualizer that converts, with different granularity, the instruction or basic blocks to valid [mermaid code](https://mermaid.js.org/)
+- Focused demos under `demos/` for quick exploration
 
-Project layout (important files)
--
-- `main.ts` — simple entrypoint for running or testing the project.
-- `demos/` — small runnable examples (e.g. `demos/struct.ts`, `demos/if_basic_blocks.ts`).
-- `src/` — core TypeScript modules used by the parser (AST, traversal, utilities).
-- `parser/` — parser definitions, tokenizer, reducer, and lookahead analyzer.
-- `exceptions/` — parser-specific error classes and helpers.
+**Requirements**
+- Deno (recommended for running the demos as provided)
 
-Getting started
+Quick start
 -
-Requirements:
-- Deno (recommended for running demos as provided).
-
-Run a demo (example):
+Run a demo with Deno (examples):
 
 ```bash
 deno run demos/struct.ts
-```
-
-You can also run other demo files in `demos/` similarly, for example:
-
-```bash
 deno run demos/if_basic_blocks.ts
+deno run demos/grammar.ts
 ```
 
-Development notes
+Project layout
 -
-- The codebase is modular: `src/ast` contains AST node types and converters; `parser/` contains parsing and tokenization logic. Use the demos as quick integration checks when making changes.
-- If adapting to Node.js, compile or run TypeScript with an appropriate toolchain (tsc + node or ts-node), and adjust any Deno-specific imports.
+- `main.ts` — simple entry point for quick experiments
+- `demos/` — runnable examples demonstrating parser usage
+- `src/` — core TypeScript modules (AST, traversal, utilities)
+- `src/ast` — AST node definitions, converters, and helpers
+- `parser/` — tokenizer, parser, reducer, and lookahead analyzer
+- `exceptions/` — custom parser exception classes
+
+Usage notes
+-
+- Use the demos to verify parser behavior after changes.
+- The code is written to run with Deno-style imports; to run under Node.js,
+  adjust imports and toolchain (e.g., compile with `tsc` or use `ts-node`).
+
+Development
+-
+- Modify source files under `src/` and `parser/` and exercise changes
+  via the demos. Keep the demos minimal and self-contained so they
+  clearly demonstrate the intended parsing behavior.
 
 Contributing
 -
-Contributions, improvements, and bug reports are welcome. Please open issues describing the change and include a minimal reproduction/demo where applicable.
+Contributions and bug reports are welcome. Please open an issue with a
+short description and a minimal reproduction, or submit a pull request
+with focused changes and updated demos where applicable.
