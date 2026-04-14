@@ -35,8 +35,8 @@ export class Converter<T> {
             return this.context.entries();
       }
       public restoreContext(previousState: MapIterator<[string, unknown]>): void {
+            this.context.clear();
             for (const [key, data] of previousState) {
-                  this.context.clear();
                   this.context.set(key, data);
             }
       }

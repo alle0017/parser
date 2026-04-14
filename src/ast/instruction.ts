@@ -21,10 +21,14 @@ export abstract class Instruction {
        */
       public addSuccessor(instruction: Instruction): this {
             this.next.add(instruction);
-            instruction.predecessors.add(this);
+            instruction.addPredecessor(this);
             return this;
       }
-
+      
+      public addPredecessor(instruction: Instruction): this {
+            this.predecessors.add(instruction);
+            return this;
+      }
       /**
        * Collect the variable names that are read/used by this instruction.
        * Concrete subclasses must implement this to support dataflow analyses.
@@ -40,7 +44,7 @@ export abstract class Instruction {
        * override to provide richer information.
        */
       public toString() {
-            return `@@${Object.getPrototypeOf(this).constructor.name}`
+            return `@${Object.getPrototypeOf(this).constructor.name}`
       }
       public toMermaidDiagram(traversed: Set<Instruction> = new Set()): string {
             let diagram = `\nINSTR_${this.id}["${this.toString()}"]`;
@@ -71,5 +75,23 @@ export abstract class FlowInstruction extends Instruction {
       }
       public override getUsedVariables(): string[] {
             return [];
+      }
+}
+
+export abstract class ProcedureInstruction extends Instruction {
+      constructor(protected readonly procedure: Instruction[]) {
+            super();
+      }
+
+      public getProcedure(): Instruction[] {
+            return this.procedure;
+      }
+     
+      public override toString(): string {
+            return `@procedure ${Object.getPrototypeOf(this).constructor.name} {\n${this.procedure.map(instr => instr.toString()).join('\n')}}`;
+      }
+
+      public override getMermaidId() {
+            return `FUNC_${super.getMermaidId()}`;
       }
 }

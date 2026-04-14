@@ -1,7 +1,8 @@
-import { Instruction, FlowInstruction } from "../src/ast/instruction.ts";
+import { Instruction, FlowInstruction, ProcedureInstruction } from "../src/ast/instruction.ts";
 import { Traverse } from "../src/ast/traverse.ts";
 import { Grammar, GrammarApplication } from "../src/grammar.ts";
 import type { PRule, RRule } from "../src/parser/index.d.ts";
+import { Program } from '../src/ast/program.ts';
 
 class AllocInstr extends Instruction {
       constructor(private readonly name: string, private readonly type: string) {
