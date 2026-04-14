@@ -98,7 +98,9 @@ export class Program {
 
             for (let i = 0; i < this.cfg.length - 1; i++) {
                   curr.push(this.cfg[i]);
-                  if (curr.length > 0 && (this.cfg[i].next.size != 1 || !this.cfg[i].next.has(this.cfg[i + 1]) || this.cfg[i].predecessors.size != 1)) {
+                  const hasOtherPredecessor = this.cfg[i].predecessors.size > 1 || (i > 0 && !this.cfg[i].predecessors.has(this.cfg[i - 1]));
+                  const hasOtherSuccessors = !this.cfg[i].next.has(this.cfg[i + 1]) || this.cfg[i].next.size > 1;
+                  if (curr.length > 1 && (hasOtherPredecessor || hasOtherSuccessors)) {
                         const block = this.createBasicBlock(idx, curr, map);
                         idx++;
                         bb.push(block);
