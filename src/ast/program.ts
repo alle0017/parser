@@ -115,8 +115,7 @@ export class Program {
             bb.push(block);
             return bb;
       }   
-}
-
-export function toMermaidDiagram(program: Program) {
-      return `---\nconfig:\n layout: elk\n theme: redux\n---\nflowchart TD\n${program.toBasicBlocks()[0].toMermaidDiagram()}`;
+      public toMermaidDiagram() {
+            return `---\nconfig:\n layout: elk\n theme: redux\n---\nflowchart TD\n${this.toBasicBlocks()[0].toMermaidDiagram()}`;
+      }
 }

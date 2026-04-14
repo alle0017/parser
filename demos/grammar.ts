@@ -2,7 +2,6 @@ import { Instruction, FlowInstruction } from "../src/ast/instruction.ts";
 import { Traverse } from "../src/ast/traverse.ts";
 import { Grammar, GrammarApplication } from "../src/grammar.ts";
 import type { PRule, RRule } from "../src/parser/index.d.ts";
-import { toMermaidDiagram } from '../src/ast/program.ts';
 
 class AllocInstr extends Instruction {
       constructor(private readonly name: string, private readonly type: string) {
@@ -238,4 +237,4 @@ class AggregatorGrammar extends Grammar {
 
 const grammar = new GrammarApplication('-', 'GLOB').addGrammar(new StructGrammar()).addGrammar(new ConditionGrammar()).addGrammar(new AggregatorGrammar());
 grammar.execute('type Struct { id: int, value: string } if id == id1 { y1 = 9 } else { y1 = 51, x = y1 } type Canary_Only { id: int } if id == id1 { y1 = 9 } if id == id1 { y1 = 9 }')
-console.log(toMermaidDiagram(grammar.program))
+console.log(grammar.program.toMermaidDiagram())
