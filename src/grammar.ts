@@ -3,6 +3,7 @@ import type { PRule, RRule } from "./parser/index.d.ts";
 import { Tokenizer } from './parser/tokenizer.ts';
 import { PMachine } from './parser/index.d.ts';
 import { Reducer } from './parser/reducer.ts';
+import { ConsoleWriter, Diagnostics } from './diagnostics.ts';
 
 export abstract class Grammar {
       public abstract getGrammarTokens(): PRule[];
@@ -17,6 +18,7 @@ export class GrammarApplication {
       public static readonly INITIAL_STATE = '-';
       private readonly grammars: Grammar[] = [];
       private readonly traverser: Traverse = new Traverse();
+      public readonly diagnostics: Diagnostics = new Diagnostics(new ConsoleWriter());
 
       get program() {
             return this.traverser.program;
