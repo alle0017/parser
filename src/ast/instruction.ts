@@ -43,16 +43,20 @@ export abstract class Instruction {
             return `@@${Object.getPrototypeOf(this).constructor.name}`
       }
       public toMermaidDiagram(traversed: Set<Instruction> = new Set()): string {
-            let diagram = `\nBLOCK_${this.id}["${this.toString()}"]`;
+            let diagram = `\nINSTR_${this.id}["${this.toString()}"]`;
 
             for (const bb of this.next) {
                   if (!traversed.has(bb)) {
                         traversed.add(bb);
                         diagram += bb.toMermaidDiagram(traversed);
                   }
-                  diagram += `\nBLOCK_${this.id} -- from ${this.id} goto ${bb.id} --> BLOCK_${bb.id}`
+                  diagram += `\nINSTR_${this.id} -- from ${this.id} goto ${bb.id} --> INSTR_${bb.id}`
             }
             return diagram;
+      }
+
+      public getMermaidId() {
+            return `INSTR_${this.id}`;
       }
 }
 

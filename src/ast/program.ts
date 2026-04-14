@@ -8,6 +8,7 @@ import type { Instruction } from './instruction.ts';
  * translate the linear instruction list into basic blocks.
  */
 export class Program {
+      private static readonly MD_PRELUDE = '---\nconfig:\n layout: elk\n theme: redux\n---\nflowchart TD\n';
       private readonly cfg: Instruction[] = [];
       
       /**
@@ -116,9 +117,12 @@ export class Program {
             return bb;
       }   
       public toBBMermaidDiagram() {
-            return `---\nconfig:\n layout: elk\n theme: redux\n---\nflowchart TD\n${this.toBasicBlocks()[0].toMermaidDiagram()}`;
+            return `${Program.MD_PRELUDE}${this.toBasicBlocks()[0].toMermaidDiagram()}`;
+      }
+      public toSubgraphMermaidDiagram() {
+            return `${Program.MD_PRELUDE}${this.toBasicBlocks()[0].toSubgraphMermaidDiagram()}`;
       }
       public toMermaidDiagram() {
-            return `---\nconfig:\n layout: elk\n theme: redux\n---\nflowchart TD\n${this.cfg[0].toMermaidDiagram()}`;
+            return `${Program.MD_PRELUDE}${this.cfg[0].toMermaidDiagram()}`;
       }
 }

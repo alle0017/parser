@@ -63,6 +63,19 @@ export class BasicBlock {
             return this.index > bb.index;
       }
 
+      private toMermaidSubgraph() {
+            let subgraph = '';
+
+            for (let i = 0; i < this.instructions.length; i++) {
+                  const instr = this.instructions[i];
+                  subgraph += `\n${instr.getMermaidId()}["${instr.toString()}"]`;
+
+                  for (const succ of instr.next) {
+                        subgraph += `\n${instr.getMermaidId()} --> ${succ.getMermaidId()}`
+                  }
+            }
+            return subgraph;
+      }
       toMermaidDiagram(traversed: Set<BasicBlock> = new Set()): string {
             let diagram = `\nBLOCK_${this.index}["${this.toString()}"]`;
 
@@ -72,6 +85,17 @@ export class BasicBlock {
                         diagram += bb.toMermaidDiagram(traversed);
                   }
                   diagram += `\nBLOCK_${this.index} -- from ${this.index} goto ${bb.index} --> BLOCK_${bb.index}`
+            }
+            return diagram;
+      }
+      toSubgraphMermaidDiagram(traversed: Set<BasicBlock> = new Set()): string {
+            let diagram = `\nsubgraph BLOCK_${this.index}\n${this.toMermaidSubgraph()}\nend`;
+
+            for (const bb of this.next) {
+                  if (!traversed.has(bb)) {
+                        traversed.add(bb);
+                        diagram += bb.toMermaidDiagram(traversed);
+                  }
             }
             return diagram;
       }

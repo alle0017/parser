@@ -231,4 +231,4 @@ const grammar = new GrammarApplication('GLOB')
                         .addGrammar(new ConditionGrammar())
                         .addGrammar(new AggregatorGrammar());
 grammar.execute('type Struct { id: int, value: string } if id == id1 { y1 = 9 } else { y1 = 51, x = y1 } type Canary_Only { id: int } if id == id1 { y1 = 9 } if id == id1 { y1 = 9 } else { y2 = y1 }')
-console.log(grammar.program.toMermaidDiagram())
+console.log(grammar.program.toBBMermaidDiagram())
