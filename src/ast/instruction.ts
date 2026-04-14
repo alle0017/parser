@@ -4,6 +4,9 @@
  * methods used by analyses (used/assigned variable discovery).
  */
 export abstract class Instruction {
+      private static ID = 0;
+
+      private readonly id = ++Instruction.ID;
       /** Successor instructions in the program. */
       public readonly next: Set<Instruction> = new Set();
       /** Predecessor instructions in the program. */
@@ -38,6 +41,18 @@ export abstract class Instruction {
        */
       public toString() {
             return `@@${Object.getPrototypeOf(this).constructor.name}`
+      }
+      public toMermaidDiagram(traversed: Set<Instruction> = new Set()): string {
+            let diagram = `\nBLOCK_${this.id}["${this.toString()}"]`;
+
+            for (const bb of this.next) {
+                  if (!traversed.has(bb)) {
+                        traversed.add(bb);
+                        diagram += bb.toMermaidDiagram(traversed);
+                  }
+                  diagram += `\nBLOCK_${this.id} -- from ${this.id} goto ${bb.id} --> BLOCK_${bb.id}`
+            }
+            return diagram;
       }
 }
 

@@ -115,7 +115,10 @@ export class Program {
             bb.push(block);
             return bb;
       }   
-      public toMermaidDiagram() {
+      public toBBMermaidDiagram() {
             return `---\nconfig:\n layout: elk\n theme: redux\n---\nflowchart TD\n${this.toBasicBlocks()[0].toMermaidDiagram()}`;
+      }
+      public toMermaidDiagram() {
+            return `---\nconfig:\n layout: elk\n theme: redux\n---\nflowchart TD\n${this.cfg[0].toMermaidDiagram()}`;
       }
 }

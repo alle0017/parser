@@ -6,12 +6,15 @@ import { Reducer } from './parser/reducer.ts';
 
 export abstract class Grammar {
       public abstract getGrammarTokens(): PRule[];
-      public abstract getGrammarState(): string;
+      public getGrammarState(): string {
+            return GrammarApplication.INITIAL_STATE;
+      }
       public abstract getReductionRules(): RRule[];
       public abstract convert(traverser: Traverse): void;
 }
 
 export class GrammarApplication {
+      public static readonly INITIAL_STATE = '-';
       private readonly grammars: Grammar[] = [];
       private readonly traverser: Traverse = new Traverse();
 
@@ -19,7 +22,7 @@ export class GrammarApplication {
             return this.traverser.program;
       }
       
-      constructor(private readonly initialState: string, private readonly axiom: string) {}
+      constructor(private readonly axiom: string) {}
 
       public addGrammar(grammar: Grammar): this {
             this.grammars.push(grammar);
@@ -37,7 +40,7 @@ export class GrammarApplication {
                   machine[state].push(...tokens);
                   rules.push(...tokens);
             }
-            const tokens = new Tokenizer(code).execute(this.initialState, machine).getTranslation();
+            const tokens = new Tokenizer(code).execute(GrammarApplication.INITIAL_STATE, machine).getTranslation();
             const ast = new Reducer(this.axiom, this.grammars.flatMap(gram => gram.getReductionRules()), rules).reduce(tokens);
 
             for (let i = 0; i < this.grammars.length; i++) {

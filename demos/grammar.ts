@@ -93,9 +93,6 @@ class StructGrammar extends Grammar {
                   { reduction: 'STRUCT', rule: ['T_KEY', 'ID', 'L_BRACKET', 'ATTR_L', 'R_BRACKET'] },
             ];
       }
-      public override getGrammarState(): string {
-            return '-';
-      }
       public override convert(traverser: Traverse): void {
             traverser
             .addRecursiveConversion('ATTR_L', (self, token) => {
@@ -123,9 +120,6 @@ class ConditionGrammar extends Grammar {
                   { regex: 'if', type: 'IF_KEY' },
                   { regex: 'else', type: 'ELSE_KEY' },
             ];
-      }
-      public override getGrammarState(): string {
-            return '-'
       }
       public override getReductionRules(): RRule[] {
             return [
@@ -211,9 +205,6 @@ class AggregatorGrammar extends Grammar {
                   { regex: ' ' },
             ];
       }
-      public override getGrammarState(): string {
-            return '-';
-      }
       public override getReductionRules(): RRule[] {
             return [
                   { reduction: 'GLOB', rule: ['GLOB', 'CODE'] },
@@ -235,6 +226,9 @@ class AggregatorGrammar extends Grammar {
       
 }
 
-const grammar = new GrammarApplication('-', 'GLOB').addGrammar(new StructGrammar()).addGrammar(new ConditionGrammar()).addGrammar(new AggregatorGrammar());
-grammar.execute('type Struct { id: int, value: string } if id == id1 { y1 = 9 } else { y1 = 51, x = y1 } type Canary_Only { id: int } if id == id1 { y1 = 9 } if id == id1 { y1 = 9 }')
+const grammar = new GrammarApplication('GLOB')
+                        .addGrammar(new StructGrammar())
+                        .addGrammar(new ConditionGrammar())
+                        .addGrammar(new AggregatorGrammar());
+grammar.execute('type Struct { id: int, value: string } if id == id1 { y1 = 9 } else { y1 = 51, x = y1 } type Canary_Only { id: int } if id == id1 { y1 = 9 } if id == id1 { y1 = 9 } else { y2 = y1 }')
 console.log(grammar.program.toMermaidDiagram())
