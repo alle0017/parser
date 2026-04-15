@@ -1,7 +1,8 @@
 import { TokenNotRecognizedError } from "../exceptions/index.ts";
-import { Token } from "../parser/index.d.ts";
+import { RToken, Token } from "../parser/index.d.ts";
 
 type ConverterFunction<T> = (converter: Converter<T>, token: Token) => T;
+type RecConverterFunction<T> = (converter: Converter<T>, token: RToken) => T;
 
 export class Converter<T> {
       private readonly conversion: Map<string, ConverterFunction<T>> = new Map();
@@ -9,6 +10,15 @@ export class Converter<T> {
 
       public addConversion(tokenType: string, conversion: ConverterFunction<T>): this {
             this.conversion.set(tokenType, conversion);
+            return this;
+      }
+      public addRecursiveConversion(tokenType: string, conversion: RecConverterFunction<T>): this {
+            this.addConversion(tokenType, (self, token) => {
+                  if (!Array.isArray(token.$)) {
+                        throw new TokenNotRecognizedError(token);
+                  }
+                  return conversion(self, token as RToken);
+            });
             return this;
       }
       public convert(token: Token): T {

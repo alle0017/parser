@@ -1,9 +1,8 @@
-import { Traverse } from "../../src/ast/traverse.ts";
 import { Grammar } from "../../src/grammar.ts";
 import type { PRule, RRule, } from "../../src/parser/index.d.ts";
 import { Tokens } from "./tokens.ts";
-import { FunctionInstr, Arg, RetInstr } from "../tokens/function_instruction.ts";
-
+import { Converter } from "../../src/ast/converter.ts";
+import { Func, Ir, Ret, Symbol, TypedSymbol } from "../../src/ast/ir.ts";
 
 export class FunctionGrammar extends Grammar {
       public override getGrammarTokens(): PRule[] {
@@ -21,29 +20,25 @@ export class FunctionGrammar extends Grammar {
                   { reduction: Tokens.Expression, rule: [Tokens.Function] }
             ];
       }
-      public override convert(traverser: Traverse): void {
+      public override convert(traverser: Converter<Ir[]>): void {
             traverser
-            .addRecursiveConversion(Tokens.Arg, (self, token) => self.getContext<Arg[]>('args').push({ type: token.$[2].$ as string, name: token.$[0].$ as string}))
+            .addRecursiveConversion(Tokens.Arg, (self, token) => [new TypedSymbol(token.$[0].$ as string, token.$[2].$ as string)])
             .addRecursiveConversion(Tokens.ArgList, (self, token) => {
-                  self.convert(token.$[0]);
+                  const res = self.convert(token.$[0]);
                   if (token.$.length == 3) {
-                        self.convert(token.$[2]);
+                        res.push(...self.convert(token.$[2]));
                   }
+                  return res;
             })
             .addRecursiveConversion(Tokens.Function, (self, token) => {
                   const name = token.$[1].$ as string;
-                  const args: Arg[] = [];
-                  if (token.$.length == 8) {
-                        const ctx = self.saveContext();
-                        self.setContext('args', args);
-                        self.convert(token.$[3]);
-                        self.restoreContext(ctx);
-                  }
-                  const fn = new FunctionInstr(name, args, token.$.at(-2)!.$ as string);
+                  const type = token.$.at(-2)?.$ as string;
+                  const args: TypedSymbol[] = [];
 
-                  self.program.addInstruction(fn);
-                  self.convert(token.$.at(-1)!);
-                  self.program.addInstruction(new RetInstr());
+                  if (token.$.length == 8) {
+                        args.push(...self.convert(token.$[3]) as TypedSymbol[]);
+                  }
+                  return [new Func(new TypedSymbol(name,type), args, self.convert(token.$.at(-1)!))];
             })
       }
 }

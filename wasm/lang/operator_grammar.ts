@@ -1,8 +1,8 @@
-import { Traverse } from "../../src/ast/traverse.ts";
 import { Grammar } from "../../src/grammar.ts";
 import type { PRule, RRule, } from "../../src/parser/index.d.ts";
 import { Tokens } from "./tokens.ts";
-import { OpInst, AssignInst  } from '../tokens/op_instructions.ts';
+import { Converter } from "../../src/ast/converter.ts";
+import { Assign, BinOp, Ir, Symbol } from "../../src/ast/ir.ts";
 
 
 export class OperatorGrammar extends Grammar {
@@ -26,31 +26,38 @@ export class OperatorGrammar extends Grammar {
                   { reduction: Tokens.Expression, rule: [Tokens.OperationExprList] },
             ];
       }
-      public override convert(traverser: Traverse): void {
+      public override convert(traverser: Converter<Ir[]>): void {
             traverser
             .addRecursiveConversion(Tokens.OperationExprList, (self, token) => {
-                  self.convert(token.$[0]);
+                  const res = self.convert(token.$[0]);
                   if (token.$.length == 3) {
-                        self.convert(token.$[2]);
+                        res.push(...self.convert(token.$[2]));
                   }
+                  return res;
             })
             .addRecursiveConversion(Tokens.OperationExpr, (self, token) => {
-                  self.convert(token.$[2]);
-                  const assignee = self.getContext<string>("op_reg");
-                  self.program.addInstruction(new AssignInst(token.$[0].$ as string, assignee));
+                  const name = token.$[0].$ as string;
+                  return [
+                        ...self.convert(token.$[2]), 
+                        new Assign(Symbol.from(name), self.getContext<Symbol>('op_reg'))
+                  ];
             })
             .addRecursiveConversion(Tokens.Operation, (self, token) => {
                   if (token.$[0].type == Tokens.Operation) {
-                        self.convert(token.$[0]);
-                        const reg = self.getContext<string>('op_reg');
-                        const op = new OpInst(token.$[1].$ as string, reg, token.$[2].$ as string);
-                        self.program.addInstruction(op);
-                        self.setContext('op_reg', op.reg);
-                  } else {
-                        const op = new OpInst(token.$[1].$ as string, token.$[0].$ as string, token.$[2].$ as string);
-                        self.program.addInstruction(op);
-                        self.setContext('op_reg', op.reg);
+                        const prev = self.convert(token.$[0]);
+                        const first = self.getContext<Symbol>('op_reg');
+                        const res = Symbol.new();
+                        const second = token.$[2].$ as string;
+                        const op = new BinOp(res, first, Symbol.from(second));
+                        self.setContext('op_reg', res);
+                        return [...prev, op];
                   }
+                  const first = token.$[0].$ as string;
+                  const res = Symbol.new();
+                  const second = token.$[2].$ as string;
+                  const op = new BinOp(res, Symbol.from(first), Symbol.from(second));
+                  self.setContext('op_reg', res);
+                  return [op];
             })
       }
 }

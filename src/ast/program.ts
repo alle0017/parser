@@ -1,38 +1,32 @@
-import { BasicBlock } from './basic_block.ts';
-import type { Instruction } from './instruction.ts';
-
+import { Ir, Prelude } from "./ir.ts";
+import { BasicBlock } from "./basic_block.ts";
 /**
  * Represents a control-flow program composed of a sequence of
- * `Instruction` objects. The class maintains a flat list of instructions
+ * `Ir` objects. The class maintains a flat list of Irs
  * (`cfg`) and provides helpers to build BasicBlock boundaries and
- * translate the linear instruction list into basic blocks.
+ * translate the linear Ir list into basic blocks.
  */
 export class Program {
-      private static readonly MD_PRELUDE = '---\nconfig:\n layout: elk\n theme: redux\n---\nflowchart TD\n';
-      private readonly cfg: Instruction[] = [];
+      private readonly head: Ir = new Prelude();
+      private tail: Ir = this.head;
+      private readonly linearGraph: Ir[] = [];
       
       /**
-       * Append an `Instruction` to the program and link it as a successor
-       * of the previously appended instruction (when present).
+       * Append an `Ir` to the program and link it as a successor
+       * of the previously appended Ir (when present).
        *
-       * @param instr - instruction to append to the program
+       * @param instr - Ir to append to the program
        * @returns `this` for fluent chaining
        */
-      public addInstruction(instr: Instruction) {
-            if (this.cfg.length >= 1) {
-                  this.cfg.at(-1)?.addSuccessor(instr);
-            }
-            this.cfg.push(instr);
+      public addInstruction(instr: Ir) {
+            this.tail.addNext(instr);
+            this.tail = instr;
+            this.linearGraph.push(instr)
             return this;
       }
-      /**
-       * Render the program as a textual representation by joining the
-       * `toString()` output of each contained instruction.
-       *
-       * @returns A multi-line string representing the program
-       */
-      public toString() {
-            return this.cfg.map(v => v.toString()).join('\n');
+
+      toString() {
+            return this.linearGraph.map(ir => ir.toString()).join('\n')
       }
       /**
        * Resolve the BasicBlock associated with `instr` from `map` and set it
@@ -40,7 +34,7 @@ export class Program {
        *
        * @private
        */
-      private setBBNext(instr: Instruction, block: BasicBlock, map:  Map<Instruction, BasicBlock>) {
+      private setBBNext(instr: Ir, block: BasicBlock<Ir>, map:  Map<Ir, BasicBlock<Ir>>) {
             const bb = map.get(instr);
 
             if (!bb || bb == block) {
@@ -54,7 +48,7 @@ export class Program {
        *
        * @private
        */
-      private setBBPrev(instr: Instruction, block: BasicBlock, map:  Map<Instruction, BasicBlock>) {
+      private setBBPrev(instr: Ir, block: BasicBlock<Ir>, map:  Map<Ir, BasicBlock<Ir>>) {
             const bb = map.get(instr);
 
             if (!bb || bb == block) {
@@ -63,14 +57,14 @@ export class Program {
             bb.setNext(block);
       }
       /**
-       * Create a `BasicBlock` from a contiguous list of `Instruction`s and
-       * populate the provided `map` so individual instructions point to the
+       * Create a `BasicBlock` from a contiguous list of `Ir`s and
+       * populate the provided `map` so individual Irs point to the
        * newly created block. The method also links predecessor/successor
-       * basic blocks based on the first/last instruction's relations.
+       * basic blocks based on the first/last Ir's relations.
        *
        * @private
        */
-      private createBasicBlock(idx: number, curr: Instruction[], map: Map<Instruction, BasicBlock>) {
+      private createBasicBlock(idx: number, curr: Ir[], map: Map<Ir, BasicBlock<Ir>>) {
             const block = new BasicBlock(curr, idx);
             for (let i = 0; i < curr.length; i++) {
                   map.set(curr[i], block);
@@ -78,32 +72,29 @@ export class Program {
             const first = curr[0];
             const last = curr.at(-1)!;
 
-            first.predecessors.forEach(instr => this.setBBPrev(instr, block, map));
             first.next.forEach(instr => this.setBBNext(instr, block, map));
             last.next.forEach(instr => this.setBBNext(instr, block, map));
-            last.predecessors.forEach(instr => this.setBBPrev(instr, block, map));
             return block;
       }
       /**
-       * Split the program's instruction list into basic blocks. The algorithm
-       * iterates over the instruction sequence and emits a new `BasicBlock`
+       * Split the program's Ir list into basic blocks. The algorithm
+       * iterates over the Ir sequence and emits a new `BasicBlock`
        * each time a control-flow boundary is detected (e.g. multiple
        * successors, non-fall-through target, or multiple predecessors).
        *
        * @returns An array of `BasicBlock` objects representing the CFG
        */
       public toBasicBlocks() {
-            const bb: BasicBlock[] = [];
-            const map: Map<Instruction, BasicBlock> = new Map();
-            let curr: Instruction[] = []
+            const bb: BasicBlock<Ir>[] = [];
+            const map: Map<Ir, BasicBlock<Ir>> = new Map();
+            let curr: Ir[] = []
             let idx = 0;
 
 
-            for (let i = 0; i < this.cfg.length - 1; i++) {
-                  curr.push(this.cfg[i]);
-                  const hasOtherPredecessor = this.cfg[i].predecessors.size > 1 || (i > 0 && !this.cfg[i].predecessors.has(this.cfg[i - 1]));
-                  const hasOtherSuccessors = !this.cfg[i].next.has(this.cfg[i + 1]) || this.cfg[i].next.size > 1;
-                  if (curr.length > 1 && (hasOtherPredecessor || hasOtherSuccessors)) {
+            for (let i = 0; i < this.linearGraph.length - 1; i++) {
+                  curr.push(this.linearGraph[i]);
+                  const hasOtherSuccessors = !this.linearGraph[i].next.has(this.linearGraph[i + 1]) || this.linearGraph[i].next.size > 1;
+                  if (curr.length > 1 && hasOtherSuccessors) {
                         const block = this.createBasicBlock(idx, curr, map);
                         idx++;
                         bb.push(block);
@@ -111,18 +102,9 @@ export class Program {
                   }
             }
 
-            curr.push(this.cfg.at(-1)!);
+            curr.push(this.linearGraph.at(-1)!);
             const block = this.createBasicBlock(idx, curr, map);
             bb.push(block);
             return bb;
       }   
-      public toBBMermaidDiagram() {
-            return `${Program.MD_PRELUDE}${this.toBasicBlocks()[0].toMermaidDiagram()}`;
-      }
-      public toSubgraphMermaidDiagram() {
-            return `${Program.MD_PRELUDE}${this.toBasicBlocks()[0].toSubgraphMermaidDiagram()}`;
-      }
-      public toMermaidDiagram() {
-            return `${Program.MD_PRELUDE}${this.cfg[0].toMermaidDiagram()}`;
-      }
 }

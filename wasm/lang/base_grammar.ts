@@ -1,4 +1,5 @@
-import { Traverse } from "../../src/ast/traverse.ts";
+import { Converter } from "../../src/ast/converter.ts";
+import { Ir } from "../../src/ast/ir.ts";
 import { Grammar } from "../../src/grammar.ts";
 import type { PRule, RRule } from "../../src/parser/index.d.ts";
 import { Tokens } from "./tokens.ts";
@@ -27,15 +28,16 @@ export class BaseGrammar extends Grammar {
                   { reduction: Tokens.ExpressionList, rule: [Tokens.Expression] }
             ];
       }
-      public override convert(traverser: Traverse): void {
+      public override convert(traverser: Converter<Ir[]>): void {
             traverser
             .addRecursiveConversion(Tokens.ExpressionList, (self, token) => {
-                  self.convert(token.$[0]);
+                  const res = self.convert(token.$[0]);
 
                   if (token.$.length == 2) {
-                        self.convert(token.$[1]);
+                        res.push(...self.convert(token.$[1]));
                   }
+                  return res;
             })
-            .addRecursiveConversion(Tokens.Expression, (self, token) => self.convertAll(token.$))
+            .addRecursiveConversion(Tokens.Expression, (self, token) => self.convertAll(token.$).flat())
       }
 }

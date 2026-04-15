@@ -1,22 +1,20 @@
-import type { Instruction } from "./instruction.ts";
-
 /**
- * BasicBlock groups a contiguous sequence of `Instruction` objects and
+ * BasicBlock<T> groups a contiguous sequence of `T` objecinstructions and
  * tracks control-flow relationships between blocks (`next` and
  * `predecessors`). Instances are typically produced when splitting a
- * linear instruction stream into basic blocks.
+ * linear T stream into basic blocks.
  */
-export class BasicBlock {
+export class BasicBlock<T extends { toString(): string }> {
       /** Successor basic blocks in the control-flow graph. */
-      public readonly next: Set<BasicBlock> = new Set();
+      public readonly next: Set<BasicBlock<T>> = new Set();
       /** Predecessor basic blocks in the control-flow graph. */
-      public readonly predecessors: Set<BasicBlock> = new Set();
+      public readonly predecessors: Set<BasicBlock<T>> = new Set();
       /**
-       * Create a `BasicBlock` wrapping the provided instructions.
+       * Create a `BasicBlock<T>` wrapping the provided instructions.
        *
        * @param instructions - contiguous instructions comprising the block
        */
-      constructor(private readonly instructions: Instruction[], private readonly index: number) {}
+      constructor(private readonly instructions: T[], private readonly index: number) {}
 
       /**
        * Link `bb` as a successor of this block and update the successor's
@@ -25,7 +23,7 @@ export class BasicBlock {
        * @param bb - successor basic block to add
        * @returns `this` for chaining
        */
-      public setNext(bb: BasicBlock) {
+      public setNext(bb: BasicBlock<T>) {
             this.next.add(bb);
             bb.predecessors.add(this);
             return this;
@@ -33,70 +31,18 @@ export class BasicBlock {
 
       /**
        * Render the block by concatenating the textual representation of
-       * its contained instructions.
+       * instructions contained instructions.
        *
-       * @returns Multi-line string for the block contents
+       * @returns Multi-line string for the block
        */
       public toString() {
             return `${this.instructions.map(instr => instr.toString()).join('\n')}`;
       }
 
-      public getUsedVariables(): string[] {
-            const set: Set<string> = new Set();
-            for (let i = 0; i < this.instructions.length; i++) {
-                  this.instructions[i].getUsedVariables().forEach(val => set.add(val));
-            }
-            return [...set];
-      }
-      public getAssignedVariables(): string[] {
-            const set: Set<string> = new Set();
-            for (let i = 0; i < this.instructions.length; i++) {
-                  this.instructions[i].getAssignedVariables().forEach(val => set.add(val));
-            }
-            return [...set];
-      }
-
-      public dominates(bb: BasicBlock) {
+      public dominates(bb: BasicBlock<T>) {
             return this.index < bb.index;
       }
-      public isDominatedBy(bb: BasicBlock) {
+      public isDominatedBy(bb: BasicBlock<T>) {
             return this.index > bb.index;
-      }
-
-      private toMermaidSubgraph() {
-            let subgraph = '';
-
-            for (let i = 0; i < this.instructions.length; i++) {
-                  const instr = this.instructions[i];
-                  subgraph += `\n${instr.getMermaidId()}["${instr.toString()}"]`;
-
-                  for (const succ of instr.next) {
-                        subgraph += `\n${instr.getMermaidId()} --> ${succ.getMermaidId()}`
-                  }
-            }
-            return subgraph;
-      }
-      toMermaidDiagram(traversed: Set<BasicBlock> = new Set()): string {
-            let diagram = `\nBLOCK_${this.index}["${this.toString()}"]`;
-
-            for (const bb of this.next) {
-                  if (!traversed.has(bb)) {
-                        traversed.add(bb);
-                        diagram += bb.toMermaidDiagram(traversed);
-                  }
-                  diagram += `\nBLOCK_${this.index} -- from ${this.index} goto ${bb.index} --> BLOCK_${bb.index}`
-            }
-            return diagram;
-      }
-      toSubgraphMermaidDiagram(traversed: Set<BasicBlock> = new Set()): string {
-            let diagram = `\nsubgraph BLOCK_${this.index}\n${this.toMermaidSubgraph()}\nend`;
-
-            for (const bb of this.next) {
-                  if (!traversed.has(bb)) {
-                        traversed.add(bb);
-                        diagram += bb.toMermaidDiagram(traversed);
-                  }
-            }
-            return diagram;
       }
 }
