@@ -1,10 +1,12 @@
+import { View } from "../view/view.d.ts";
+
 /**
  * BasicBlock<T> groups a contiguous sequence of `T` objecinstructions and
  * tracks control-flow relationships between blocks (`next` and
  * `predecessors`). Instances are typically produced when splitting a
  * linear T stream into basic blocks.
  */
-export class BasicBlock<T extends { toString(): string }> {
+export class BasicBlock<T extends View> implements View {
       /** Successor basic blocks in the control-flow graph. */
       public readonly next: Set<BasicBlock<T>> = new Set();
       /** Predecessor basic blocks in the control-flow graph. */
@@ -14,7 +16,7 @@ export class BasicBlock<T extends { toString(): string }> {
        *
        * @param instructions - contiguous instructions comprising the block
        */
-      constructor(private readonly instructions: T[], private readonly index: number) {}
+      constructor(private readonly instructions: T[], public readonly index: number) {}
 
       /**
        * Link `bb` as a successor of this block and update the successor's
@@ -36,7 +38,7 @@ export class BasicBlock<T extends { toString(): string }> {
        * @returns Multi-line string for the block
        */
       public toString() {
-            return `${this.instructions.map(instr => instr.toString()).join('\n')}`;
+            return `@Block(${this.index})\n${this.instructions.map(instr => instr.toString()).join('\n')}`;
       }
 
       public dominates(bb: BasicBlock<T>) {

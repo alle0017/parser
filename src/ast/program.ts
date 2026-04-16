@@ -73,7 +73,9 @@ export class Program {
             const last = curr.at(-1)!;
 
             first.next.forEach(instr => this.setBBNext(instr, block, map));
+            first.previous.forEach(instr => this.setBBPrev(instr, block, map));
             last.next.forEach(instr => this.setBBNext(instr, block, map));
+            last.previous.forEach(instr => this.setBBPrev(instr, block, map));
             return block;
       }
       /**
@@ -93,8 +95,11 @@ export class Program {
 
             for (let i = 0; i < this.linearGraph.length - 1; i++) {
                   curr.push(this.linearGraph[i]);
+
+                  const hasOtherPredecessor = this.linearGraph[i].previous.size > 1 || (i > 0 && !this.linearGraph[i].previous.has(this.linearGraph[i - 1]));
                   const hasOtherSuccessors = !this.linearGraph[i].next.has(this.linearGraph[i + 1]) || this.linearGraph[i].next.size > 1;
-                  if (curr.length > 1 && hasOtherSuccessors) {
+
+                  if (curr.length > 1 && (hasOtherPredecessor || hasOtherSuccessors)) {
                         const block = this.createBasicBlock(idx, curr, map);
                         idx++;
                         bb.push(block);
@@ -107,4 +112,7 @@ export class Program {
             bb.push(block);
             return bb;
       }   
+      toIr() {
+            return this.linearGraph;
+      }
 }

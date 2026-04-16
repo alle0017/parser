@@ -1,9 +1,15 @@
-import { BasicBlock } from "./basic_block.ts";
-
-export abstract class Ir {
+import type { View } from '../view/view.d.ts';
+export abstract class Ir implements View {
+      private static ID = 0;
+      public readonly index = ++Ir.ID;
       public readonly next: Set<Ir> = new Set();
-      public addNext(Ir: Ir) {
-            this.next.add(Ir);
+      public readonly previous: Set<Ir> = new Set();
+      public addNext(ir: Ir) {
+            this.next.add(ir);
+            ir.addPredecessor(this);
+      }
+      protected addPredecessor(ir: Ir) {
+            this.previous.add(ir);
       }
       toString() {
             return `ir`;
@@ -11,20 +17,20 @@ export abstract class Ir {
 }
 
 export class Symbol extends Ir {
-      private static ID = 0;
+      private static UNIQUE = 0;
       private static readonly map: Map<string, Symbol> = new Map()
       public static new() {
-            let symbol = `s${++this.ID}`;
+            let symbol = `s${++this.UNIQUE}`;
             while (this.map.has(symbol)) {
-                  symbol = `s${++this.ID}`;
+                  symbol = `s${++this.UNIQUE}`;
             }
             return this.from(symbol);
       }
-      static from(name: string) {
+      public static from(name: string) {
             return this.map.getOrInsertComputed(name, () => new Symbol(name));
       }
 
-      protected constructor(protected readonly value: string) { super() }
+      constructor(protected readonly value: string) { super() }
       public override toString() {
             return `%${this.value}`;
       }
@@ -140,6 +146,10 @@ export class Branch extends Ir {
 export class Jump extends Ir {
       constructor(protected readonly label: Label) {
             super();
+            super.addNext(label);
+      }
+      public override addNext(ir: Ir): void {
+            // no operation
       }
       public override toString() {
             return `j ${this.label.toString()}`
