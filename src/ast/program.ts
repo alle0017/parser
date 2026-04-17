@@ -65,7 +65,7 @@ export class Program {
        * @private
        */
       private createBasicBlock(idx: number, curr: Ir[], map: Map<Ir, BasicBlock<Ir>>) {
-            const block = new BasicBlock(curr, idx);
+            const block = new BasicBlock<Ir>(curr, idx);
             for (let i = 0; i < curr.length; i++) {
                   map.set(curr[i], block);
             }
