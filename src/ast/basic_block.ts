@@ -1,4 +1,5 @@
 import { View } from "../view/view.d.ts";
+import { Ir, Symbol } from "./ir.ts";
 
 /**
  * BasicBlock<T> groups a contiguous sequence of `T` objecinstructions and
@@ -16,7 +17,7 @@ export class BasicBlock<T extends View> implements View {
        *
        * @param instructions - contiguous instructions comprising the block
        */
-      constructor(private readonly instructions: T[], public readonly index: number) {}
+      constructor(public readonly instructions: T[], public readonly index: number) {}
 
       /**
        * Link `bb` as a successor of this block and update the successor's
@@ -40,11 +41,40 @@ export class BasicBlock<T extends View> implements View {
       public toString() {
             return `@Block(${this.index})\n${this.instructions.map(instr => instr.toString()).join('\n')}`;
       }
+}
 
-      public dominates(bb: BasicBlock<T>) {
-            return this.index < bb.index;
+export function getAssignedSymbolInBlock(block: BasicBlock<Ir>) {
+      const live: Set<Symbol> = new Set();
+      for (const ir of block.instructions) {
+            const defined = ir.getAssignedVariables();
+            for (let i = 0; i < defined.length; i++) {
+                  live.add(defined[i]);
+            }
       }
-      public isDominatedBy(bb: BasicBlock<T>) {
-            return this.index > bb.index;
+      return live;
+}
+export function getKilledSymbolInBlock(block: BasicBlock<Ir>) {
+      const live: Set<Symbol> = new Set();
+      const killed: Set<Symbol> = new Set();
+      for (const ir of block.instructions) {
+            const defined = ir.getAssignedVariables();
+            for (let i = 0; i < defined.length; i++) {
+                  if (live.has(defined[i])) {
+                        killed.add(defined[i]);
+                  } else {
+                        live.add(defined[i]);
+                  }
+            }
       }
+      return killed;
+}
+export function getUsedSymbolInBlock(block: BasicBlock<Ir>) {
+      const live: Set<Symbol> = new Set();
+      for (const ir of block.instructions) {
+            const defined = ir.getUsedVariables();
+            for (let i = 0; i < defined.length; i++) {
+                  live.add(defined[i]);
+            }
+      }
+      return live;
 }

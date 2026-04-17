@@ -11,7 +11,13 @@ export abstract class Ir implements View {
       protected addPredecessor(ir: Ir) {
             this.previous.add(ir);
       }
-      toString() {
+      public getUsedVariables(): Symbol[] {
+            return [];
+      }
+      public getAssignedVariables(): Symbol[] {
+            return [];
+      }
+      public toString() {
             return `ir`;
       }
 }
@@ -52,6 +58,9 @@ export class Ret extends Ir {
       constructor(protected readonly value: Symbol) {
             super();
       }
+      public override getUsedVariables(): Symbol[] {
+            return [this.value];
+      }
       public override toString() {
             return `ret ${this.value.toString()}`
       }
@@ -70,6 +79,9 @@ export class Param extends Ir {
       constructor(protected readonly value: Symbol) {
             super();
       }
+      public override getUsedVariables(): Symbol[] {
+            return [this.value];
+      }
       public override toString() {
             return `param ${this.value.toString()}`
       }
@@ -81,6 +93,12 @@ export class BinOp extends Ir {
       }
       public override toString() {
             return `op ${this.result.toString()}, ${this.op1.toString()}, ${this.op2.toString()}`
+      }
+      public override getUsedVariables(): Symbol[] {
+            return [this.op1, this.op2];
+      }
+      public override getAssignedVariables(): Symbol[] {
+            return [this.result];
       }
 }
 export class Add extends BinOp {
@@ -142,6 +160,9 @@ export class Branch extends Ir {
       public override toString() {
             return `br ${this.condition.toString()}? ${this.label.toString()}`
       }
+      public override getUsedVariables(): Symbol[] {
+            return [this.condition];
+      }
 }
 export class Jump extends Ir {
       constructor(protected readonly label: Label) {
@@ -161,6 +182,12 @@ export class Assign extends Ir {
       }
       public override toString() {
             return `${this.assigned.toString()} = ${this.value.toString()}`
+      }
+      public override getUsedVariables(): Symbol[] {
+            return [this.value];
+      }
+      public override getAssignedVariables(): Symbol[] {
+            return [this.assigned];
       }
 }
 
