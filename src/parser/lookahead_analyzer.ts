@@ -39,7 +39,6 @@ export class LookaheadAnalyzer {
             const starters = new Map<string, Set<string>>();
             this.rules.map(rule => [rule.reduction, rule.rule[0]]).forEach(([k,v]) => starters.getOrInsertComputed(k, SetConstructor).add(v));
             const ruleTokens = new Set(this.rules.map(rule => rule.reduction));
-
             while (ruleTokens.size > 0) {
                   const cpy = new Set(ruleTokens);
                   const empty = new Set<string>();

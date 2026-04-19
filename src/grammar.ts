@@ -46,7 +46,6 @@ export class GrammarApplication {
             }
             const tokens = new Tokenizer(code).execute(GrammarApplication.INITIAL_STATE, machine).getTranslation();
             const ast = new Reducer(this.axiom, grammars.flatMap(gram => gram.getReductionRules()), rules).reduce(tokens);
-
             for (let i = 0; i < grammars.length; i++) {
                   grammars[i].convert(this.converter);
             }
@@ -56,4 +55,13 @@ export class GrammarApplication {
             }
             return program;
       }
+}
+
+export function registerAll(axiom: string, grammars: Class<Grammar>[]) {
+      const app = new GrammarApplication(axiom);
+
+      for (let i = 0; i < grammars.length; i++) {
+            app.addGrammar(grammars[i]);
+      }
+      return app;
 }

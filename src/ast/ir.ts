@@ -34,7 +34,7 @@ export abstract class Ir implements View {
       }
 }
 
-export class Symbol {
+export class Symbol extends Ir {
       private static UNIQUE = 0;
       private static readonly map: Map<string, Symbol> = new Map()
       public static new() {
@@ -48,7 +48,7 @@ export class Symbol {
             return this.map.getOrInsertComputed(name, () => new Symbol(name));
       }
       private readonly users: Set<Ir> = new Set();
-      private constructor(protected readonly value: string) { }
+      private constructor(public readonly value: string) { super(); }
 
       public addUser(user: Ir) {
             this.users.add(user);
@@ -58,7 +58,7 @@ export class Symbol {
             return this.users;
       }
 
-      public toString() {
+      public override toString() {
             return `%${this.value}`;
       }
 }

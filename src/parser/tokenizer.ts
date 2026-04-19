@@ -72,7 +72,7 @@ export class Tokenizer extends Translator<PToken> {
                         }
                   }
                   if (matches[max] <= 0) {
-                        throw new NoValidTokenError(this.remaining());
+                        throw new NoValidTokenError(this.remaining(), this.getTranslation());
                   }
                   
                   // Collect the matched characters into `$` and advance the cursor
