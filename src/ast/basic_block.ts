@@ -39,7 +39,10 @@ export class BasicBlock<T extends View> implements View {
        * @returns Multi-line string for the block
        */
       public toString() {
-            return `@Block(${this.index})\n${this.instructions.map(instr => instr.toString()).join('\n')}`;
+            return `${this.toBlockName()}\n${this.instructions.map(instr => instr.toString()).join('\n')}`;
+      }
+      public toBlockName() {
+            return `@Block(${this.index})`;
       }
 }
 

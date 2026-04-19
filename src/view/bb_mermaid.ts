@@ -5,7 +5,6 @@ export class BBMermaid implements View {
       private static readonly MD_PRELUDE = '---\nconfig:\n layout: elk\n theme: redux\n---\nflowchart TD\n';
       private basicBlocksToMermaidDiagram(block: BasicBlock<View>, traversed: Set<BasicBlock<View>> = new Set()): string {
             let diagram = `\nBLOCK_${block.index}["${block.toString()}"]`;
-
             for (const bb of block.next) {
                   if (!traversed.has(bb)) {
                         traversed.add(bb);
@@ -36,7 +35,7 @@ export class BBMermaid implements View {
       }
       public viewBasicBlocks(blocks: BasicBlock<View>[]) {
             const set: Set<BasicBlock<View>> = new Set();
-            return `${BBMermaid.MD_PRELUDE}\n${blocks.map((bb) => this.basicBlocksToMermaidDiagram(bb, set)).join('\n')}`;
+            return `${BBMermaid.MD_PRELUDE}\n${this.basicBlocksToMermaidDiagram(blocks[0], set)}`;
       }
       public viewIr(instructions: Ir[]) {
             return this.programToMermaidDiagram(instructions, new Set());
