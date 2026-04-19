@@ -45,7 +45,7 @@ export class DataflowAnalyzer<T> {
             const input: Map<BasicBlock<Ir>, T> = new Map();
             let changed = true;
 
-            input.set(this.blocks[0], entryValue);
+            input.set(this.blocks.at(-1)!, entryValue);
 
             for (let i = 1; i < this.blocks.length; i++) {
                   input.set(this.blocks[i], operator.empty());
