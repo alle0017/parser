@@ -30,8 +30,9 @@ export class Optional<T> {
        * @param value - The value to wrap, if any.
        * @returns An {@link Optional} containing `value`, or an empty optional if it is nullish.
        */
-      public static ofNullable<T>(value: T): Optional<T> {
-            return new Optional(value);
+      public static ofNullable<T>(value: T | null | undefined): Optional<T> {
+            value ??= null;
+            return new Optional<T>(value);
       }
       /**
        * Creates an empty {@link Optional} instance.
@@ -115,6 +116,9 @@ export class Optional<T> {
        */
       public map<K>(lambda: (value: T) => K): Optional<K> {
             return this.value == null ? Optional.empty(): Optional.of(lambda(this.value));
+      }
+      public mapNullify<K>(lambda: (value: T) => (K | null)): Optional<K> {
+            return this.value == null ? Optional.empty(): Optional.ofNullable(lambda(this.value));
       }
       /**
        * Returns the contained value if present, otherwise returns the supplied fallback.
