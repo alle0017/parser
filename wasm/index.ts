@@ -1,31 +1,30 @@
-import { GrammarApplication } from "../src/grammar.ts";
-import { Tokens } from './lang/tokens.ts';
 import { BaseGrammar } from './lang/base_grammar.ts';
 import { FunctionGrammar } from "./lang/function_grammar.ts";
-import { CodeblockGrammar } from "./lang/codeblock_grammar.ts";
 import { OperatorGrammar } from "./lang/operator_grammar.ts";
 import { BBMermaid } from "../src/view/bb_mermaid.ts";
-import { Add, Branch, Div, FMul, Jump, Label, Symbol } from "../src/ast/ir.ts";
+import { Ir, } from "../src/ast/ir.ts";
+import { DataflowAnalyzer } from "../src/dataflow/dataflow_analyzer.ts";
+import { DTOperator } from "../src/dataflow/dt_operator.ts";
+import { BasicBlock } from "../src/ast/basic_block.ts";
+import { useSyntax, } from './grammar_gen.ts';
 
-const app = new GrammarApplication(Tokens.ExpressionList)
-.addGrammar(CodeblockGrammar)
-.addGrammar(FunctionGrammar)
-.addGrammar(OperatorGrammar)
-.addGrammar(BaseGrammar);
+const app = useSyntax().addGrammar(FunctionGrammar).addGrammar(OperatorGrammar).addGrammar(BaseGrammar);
+
+
 
 const program = app.execute('fn main(arg1: i8, arg2: i16): i32 { x = arg1 + arg2; y = 6 + x }');
 
+const bb = program.toBasicBlocks();
+console.log(new BBMermaid().viewBasicBlocks(bb))
 
-const label = new Label('label');
-program.addInstruction(label)
-program.addInstruction(new Add(Symbol.new(), Symbol.new(), Symbol.new()))
-program.addInstruction(new FMul(Symbol.new(), Symbol.new(), Symbol.new()))
-program.addInstruction(new Div(Symbol.new(), Symbol.new(), Symbol.new()))
-program.addInstruction(new Add(Symbol.new(), Symbol.new(), Symbol.new()))
-program.addInstruction(new Jump(label))
-program.addInstruction(new FMul(Symbol.new(), Symbol.new(), Symbol.new()))
-program.addInstruction(new Div(Symbol.new(), Symbol.new(), Symbol.new()))
-program.addInstruction(new Branch(label, Symbol.from('bool')))
+const {input, output} = new DataflowAnalyzer<Set<BasicBlock<Ir>>>(bb).forwardAnalysis(new DTOperator(bb), new Set([bb[0]]));
 
-console.log(new BBMermaid().viewBasicBlocks(program.toBasicBlocks()))
-console.log(new BBMermaid().viewIr(program.toIr()))
+console.log('\n\n\nINPUT\n\n')
+
+for (const [block, set] of input) {
+      console.log(block.toBlockName(), [...set].map(s => s.toBlockName()).join());
+}
+console.log('\n\n\nOUTPUT\n\n')
+for (const [block, set] of output) {
+      console.log(block.toBlockName(), [...set].map(s => s.toBlockName()).join());
+}

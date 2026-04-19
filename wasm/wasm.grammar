@@ -1,0 +1,36 @@
+axiom EXPRESSION_LIST
+
+skip '[ \t\n\r]+'
+
+token NUM        '[0-9]+(\.[0-9]+)?'
+token TYPE       'i32|f32|string|i8|i16|u8|u16|u32|u64|f64|i64'
+token FN         'fn'
+token OPERATOR   '\+|-|\*|\/|%'
+token ASSIGN     '='
+token ID         '[a-zA-Z][a-zA-Z0-9_]*'
+token LEFT_BRACKET    '{'
+token RIGHT_BRACKET   '}'
+token LEFT_PAR        '\('
+token RIGHT_PAR       '\)'
+token LEFT_SQUARE     '\['
+token RIGHT_SQUARE    '\]'
+token COLUMN          ':'
+token SEMI_COLUMN     ';'
+token COMMA           ','
+token DOT             '\.'
+
+reduction ARG          "ID COLUMN TYPE"
+reduction ARG_LIST     "ARG | ARG_LIST COMMA ARG"
+reduction FUNCTION     "FN ID LEFT_PAR ARG_LIST RIGHT_PAR COLUMN TYPE CODE_BLOCK
+                       | FN ID LEFT_PAR RIGHT_PAR COLUMN TYPE CODE_BLOCK"
+reduction OPERATION    "ID OPERATOR ID
+                       | NUM OPERATOR ID
+                       | NUM OPERATOR NUM
+                       | ID OPERATOR NUM
+                       | OPERATION OPERATOR ID
+                       | OPERATION OPERATOR NUM"
+reduction OPERATION_EXPR      "ID ASSIGN OPERATION"
+reduction OPERATION_EXPR_LIST "OPERATION_EXPR | OPERATION_EXPR_LIST SEMI_COLUMN OPERATION_EXPR"
+reduction EXPRESSION   "FUNCTION | OPERATION_EXPR_LIST"
+reduction EXPRESSION_LIST "EXPRESSION | EXPRESSION_LIST EXPRESSION"
+reduction CODE_BLOCK   "LEFT_BRACKET EXPRESSION_LIST RIGHT_BRACKET"

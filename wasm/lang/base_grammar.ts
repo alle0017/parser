@@ -1,36 +1,11 @@
+import { SemanticAction } from "../../grammar/semantic_action.ts";
 import { Converter } from "../../src/ast/converter.ts";
 import { Ir } from "../../src/ast/ir.ts";
-import { Grammar } from "../../src/grammar.ts";
-import type { PRule, RRule } from "../../src/parser/index.d.ts";
-import { Tokens } from "./tokens.ts";
-export class BaseGrammar extends Grammar {
-      public override getGrammarTokens(): PRule[] {
-            return [
-                  { regex: '[0-9]+(\\.[0-9]+)?', type: Tokens.Num },
-                  { regex: 'i32|f32|string|i8|i16|u8|u16|u32|u64|f64|i64', type: Tokens.Type },
-                  { regex: '[a-zA-Z][a-zA-Z0-9_]*', type: Tokens.Id },
-                  { regex: '{', type: Tokens.LeftBracket },
-                  { regex: '}', type: Tokens.RightBracket },
-                  { regex: '\\(', type: Tokens.LeftParenthesis },
-                  { regex: '\\)', type: Tokens.RightParenthesis },
-                  { regex: '\\[', type: Tokens.LeftSquare },
-                  { regex: '\\]', type: Tokens.RightSquare },
-                  { regex: ':', type: Tokens.Column },
-                  { regex: ';', type: Tokens.SemiColumn },
-                  { regex: ',', type: Tokens.Comma },
-                  { regex: '\\.', type: Tokens.Dot },
-                  { regex: ' ' },
-            ];
-      }
-      public override getReductionRules(): RRule[] {
-            return [
-                  { reduction: Tokens.ExpressionList, rule: [Tokens.ExpressionList, Tokens.Expression] },
-                  { reduction: Tokens.ExpressionList, rule: [Tokens.Expression] }
-            ];
-      }
+import { Tokens } from "../grammar_gen.ts";
+export class BaseGrammar extends SemanticAction {
       public override convert(traverser: Converter<Ir[]>): void {
             traverser
-            .addRecursiveConversion(Tokens.ExpressionList, (self, token) => {
+            .addRecursiveConversion(Tokens.EXPRESSION_LIST, (self, token) => {
                   const res = self.convert(token.$[0]);
 
                   if (token.$.length == 2) {
@@ -38,6 +13,7 @@ export class BaseGrammar extends Grammar {
                   }
                   return res;
             })
-            .addRecursiveConversion(Tokens.Expression, (self, token) => self.convertAll(token.$).flat())
+            .addRecursiveConversion(Tokens.EXPRESSION, (self, token) => self.convertAll(token.$).flat())
+            .addRecursiveConversion(Tokens.CODE_BLOCK, (self, token) => self.convert(token.$[1]))
       }
 }

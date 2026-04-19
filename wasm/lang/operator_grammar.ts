@@ -1,49 +1,27 @@
-import { Grammar } from "../../src/grammar.ts";
-import type { PRule, RRule, } from "../../src/parser/index.d.ts";
-import { Tokens } from "./tokens.ts";
 import { Converter } from "../../src/ast/converter.ts";
 import { Assign, BinOp, Ir, Symbol } from "../../src/ast/ir.ts";
+import { SemanticAction } from "../../grammar/semantic_action.ts";
+import { Tokens } from "../grammar_gen.ts";
 
-
-export class OperatorGrammar extends Grammar {
-      public override getGrammarTokens(): PRule[] {
-            return [
-                  { regex: '\\+|-|\\*|\\/|%', type: Tokens.Operator },
-                  { regex: '=', type: Tokens.Assign},
-            ];
-      }
-      public override getReductionRules(): RRule[] {
-            return [
-                  { reduction: Tokens.Operation, rule: [Tokens.Id, Tokens.Operator, Tokens.Id] },
-                  { reduction: Tokens.Operation, rule: [Tokens.Num, Tokens.Operator, Tokens.Id] },
-                  { reduction: Tokens.Operation, rule: [Tokens.Num, Tokens.Operator, Tokens.Num] },
-                  { reduction: Tokens.Operation, rule: [Tokens.Id, Tokens.Operator, Tokens.Num] },
-                  { reduction: Tokens.Operation, rule: [Tokens.Operation, Tokens.Operator, Tokens.Id] },
-                  { reduction: Tokens.Operation, rule: [Tokens.Operation, Tokens.Operator, Tokens.Num] },
-                  { reduction: Tokens.OperationExpr, rule: [Tokens.Id, Tokens.Assign, Tokens.Operation] },
-                  { reduction: Tokens.OperationExprList, rule: [Tokens.OperationExpr] },
-                  { reduction: Tokens.OperationExprList, rule: [Tokens.OperationExprList, Tokens.SemiColumn, Tokens.OperationExpr] },
-                  { reduction: Tokens.Expression, rule: [Tokens.OperationExprList] },
-            ];
-      }
+export class OperatorGrammar extends SemanticAction {
       public override convert(traverser: Converter<Ir[]>): void {
             traverser
-            .addRecursiveConversion(Tokens.OperationExprList, (self, token) => {
+            .addRecursiveConversion(Tokens.OPERATION_EXPR_LIST, (self, token) => {
                   const res = self.convert(token.$[0]);
                   if (token.$.length == 3) {
                         res.push(...self.convert(token.$[2]));
                   }
                   return res;
             })
-            .addRecursiveConversion(Tokens.OperationExpr, (self, token) => {
+            .addRecursiveConversion(Tokens.OPERATION_EXPR, (self, token) => {
                   const name = token.$[0].$ as string;
                   return [
                         ...self.convert(token.$[2]), 
                         new Assign(Symbol.from(name), self.getContext<Symbol>('op_reg'))
                   ];
             })
-            .addRecursiveConversion(Tokens.Operation, (self, token) => {
-                  if (token.$[0].type == Tokens.Operation) {
+            .addRecursiveConversion(Tokens.OPERATION, (self, token) => {
+                  if (token.$[0].type == Tokens.OPERATION) {
                         const prev = self.convert(token.$[0]);
                         const first = self.getContext<Symbol>('op_reg');
                         const res = Symbol.new();
