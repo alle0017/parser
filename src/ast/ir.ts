@@ -4,12 +4,24 @@ export abstract class Ir implements View {
       public readonly index = ++Ir.ID;
       public readonly next: Set<Ir> = new Set();
       public readonly previous: Set<Ir> = new Set();
+      protected readonly isJump: boolean = false;
       public addNext(ir: Ir) {
             this.next.add(ir);
             ir.addPredecessor(this);
       }
       protected addPredecessor(ir: Ir) {
             this.previous.add(ir);
+      }
+      public isLeader() {
+            if (this.previous.size > 1) {
+                  return true;
+            }
+            for (const pp of this.previous) {
+                  if (pp.isJump) {
+                        return true;
+                  }
+            }
+            return false;
       }
       public getUsedVariables(): Symbol[] {
             return [];
@@ -22,7 +34,7 @@ export abstract class Ir implements View {
       }
 }
 
-export class Symbol extends Ir {
+export class Symbol {
       private static UNIQUE = 0;
       private static readonly map: Map<string, Symbol> = new Map()
       public static new() {
@@ -35,21 +47,31 @@ export class Symbol extends Ir {
       public static from(name: string) {
             return this.map.getOrInsertComputed(name, () => new Symbol(name));
       }
+      private readonly users: Set<Ir> = new Set();
+      private constructor(protected readonly value: string) { }
 
-      constructor(protected readonly value: string) { super() }
-      public override toString() {
+      public addUser(user: Ir) {
+            this.users.add(user);
+      }
+
+      public getUsers(): Set<Ir> {
+            return this.users;
+      }
+
+      public toString() {
             return `%${this.value}`;
       }
 }
-export class TypedSymbol extends Symbol {
-      constructor(name: string, protected readonly type: string) {
-            super(name);
+export class TypedSymbol extends Ir {
+      constructor(private readonly name: string, protected readonly type: string) {
+            super();
       }
       public override toString() {
-            return `${super.toString()}: ${this.type}`
+            return `%${this.name}: ${this.type}`
       }
 }
-export class Label extends Symbol {
+export class Label extends Ir {
+      constructor(private readonly value: string) { super(); }
       public override toString() {
             return `$${this.value}`;
       }
@@ -148,11 +170,18 @@ export class Func extends Ir {
                   body[i].addNext(body[i + 1]);
             }
       }
-       public override toString() {
+      public override toString() {
             return `fn ${this.name.toString()} ${this.args.map(arg => arg.toString()).join(',')}{\n${this.body.map(ir => ir.toString()).join('\n')}}`
+      }
+      public override getAssignedVariables(): Symbol[] {
+            return this.body.flatMap(ir => ir.getAssignedVariables());
+      }
+      public override getUsedVariables(): Symbol[] {
+            return this.body.flatMap(ir => ir.getUsedVariables());
       }
 }
 export class Branch extends Ir {
+      protected override isJump = true;
       constructor(protected readonly label: Label, protected readonly condition: Symbol) {
             super();
             this.addNext(label);
@@ -165,6 +194,7 @@ export class Branch extends Ir {
       }
 }
 export class Jump extends Ir {
+      protected override isJump = true;
       constructor(protected readonly label: Label) {
             super();
             super.addNext(label);

@@ -1,5 +1,14 @@
 import { Ir, Prelude } from "./ir.ts";
 import { BasicBlock } from "./basic_block.ts";
+
+const hasAny = <T>(set: Set<T>, values: Iterable<T>) => {
+      for (const val of values) {
+            if (set.has(val)) {
+                  return true;
+            }
+      }
+      return false;
+}
 /**
  * Represents a control-flow program composed of a sequence of
  * `Ir` objects. The class maintains a flat list of Irs
@@ -29,34 +38,6 @@ export class Program {
             return this.linearGraph.map(ir => ir.toString()).join('\n')
       }
       /**
-       * Resolve the BasicBlock associated with `instr` from `map` and set it
-       * as the next block of `block` (if present).
-       *
-       * @private
-       */
-      private setBBNext(instr: Ir, block: BasicBlock<Ir>, map:  Map<Ir, BasicBlock<Ir>>) {
-            const bb = map.get(instr);
-
-            if (!bb || bb == block) {
-                  return;
-            }
-            block.setNext(bb);
-      }
-      /**
-       * Resolve the BasicBlock associated with `instr` from `map` and set
-       * `block` as its successor (linking the predecessor relationship).
-       *
-       * @private
-       */
-      private setBBPrev(instr: Ir, block: BasicBlock<Ir>, map:  Map<Ir, BasicBlock<Ir>>) {
-            const bb = map.get(instr);
-
-            if (!bb || bb == block) {
-                  return;
-            }
-            bb.setNext(block);
-      }
-      /**
        * Create a `BasicBlock` from a contiguous list of `Ir`s and
        * populate the provided `map` so individual Irs point to the
        * newly created block. The method also links predecessor/successor
@@ -64,19 +45,17 @@ export class Program {
        *
        * @private
        */
-      private createBasicBlock(idx: number, curr: Ir[], map: Map<Ir, BasicBlock<Ir>>) {
-            const block = new BasicBlock<Ir>(curr, idx);
-            for (let i = 0; i < curr.length; i++) {
-                  map.set(curr[i], block);
-            }
-            const first = curr[0];
-            const last = curr.at(-1)!;
+      private findLeaders() {
+            const leaders = new Set<Ir>();
 
-            first.next.forEach(instr => this.setBBNext(instr, block, map));
-            first.previous.forEach(instr => this.setBBPrev(instr, block, map));
-            last.next.forEach(instr => this.setBBNext(instr, block, map));
-            last.previous.forEach(instr => this.setBBPrev(instr, block, map));
-            return block;
+            leaders.add(this.head);
+
+            for (let i = 1; i < this.linearGraph.length; i++) {
+                  if (this.linearGraph[i].isLeader()) {
+                        leaders.add(this.linearGraph[i]);
+                  }
+            }
+            return leaders;
       }
       /**
        * Split the program's Ir list into basic blocks. The algorithm
@@ -87,30 +66,38 @@ export class Program {
        * @returns An array of `BasicBlock` objects representing the CFG
        */
       public toBasicBlocks() {
-            const bb: BasicBlock<Ir>[] = [];
-            const map: Map<Ir, BasicBlock<Ir>> = new Map();
-            let curr: Ir[] = []
-            let idx = 0;
+            const blocks: BasicBlock<Ir>[] = [];
+            const leaders = this.findLeaders();
+            const map: Map<Ir, BasicBlock<Ir>> = new Map()
+            let index = 0;
 
-
-            for (let i = 0; i < this.linearGraph.length - 1; i++) {
-                  curr.push(this.linearGraph[i]);
-
-                  const hasOtherPredecessor = this.linearGraph[i].previous.size > 1 || (i > 0 && !this.linearGraph[i].previous.has(this.linearGraph[i - 1]));
-                  const hasOtherSuccessors = !this.linearGraph[i].next.has(this.linearGraph[i + 1]) || this.linearGraph[i].next.size > 1;
-
-                  if (curr.length > 1 && (hasOtherPredecessor || hasOtherSuccessors)) {
-                        const block = this.createBasicBlock(idx, curr, map);
-                        idx++;
-                        bb.push(block);
-                        curr = [];
+            for (const leader of leaders) {
+                  const block = new BasicBlock<Ir>([leader], ++index)
+                  let curr = leader.next;
+                  map.set(leader, block);
+                  while (curr.size > 0 && !hasAny(leaders, curr)) {
+                        for (const cc of curr) {
+                              map.set(cc, block);
+                        }
+                        block.instructions.push(...curr);
+                        curr = [...curr].map(curr => curr.next).reduce((p,c) => p.union(c), new Set());
                   }
+                  blocks.push(block);
             }
 
-            curr.push(this.linearGraph.at(-1)!);
-            const block = this.createBasicBlock(idx, curr, map);
-            bb.push(block);
-            return bb;
+            for (let i = 0; i < blocks.length; i++) {
+                  const instr = blocks[i].instructions;
+                  const head = instr[0];
+                  const tail = instr.at(-1)!;
+
+                  for (const pir of head.previous) {
+                        map.get(pir)!.setNext(blocks[i]);
+                  }
+                  for (const nir of tail.next) {
+                        blocks[i].setNext(map.get(nir)!);
+                  }
+            }
+            return blocks;
       }   
       toIr() {
             return this.linearGraph;
