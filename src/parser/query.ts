@@ -1,11 +1,11 @@
 import type { Token, RToken, PToken } from './index.d.ts';
-import { Optional } from '../optional.ts';
+import { Optional } from '../utils/optional.ts';
 import { TokenNotRecognizedError } from '../exceptions/token_not_recognized.ts';
-export function matches(token: Token, match: string) {
+export function matches(token: Token, match: RegExp) {
       if (Array.isArray(token.$)) {
-            return token.$.join(' ') == match;
+            return match.exec(token.$.join(' '));
       }
-      return token.type == match;
+      return match.exec(token.type);
 }
 export function asPToken(token: Token) {
       if (Array.isArray(token.$)) {
