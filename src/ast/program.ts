@@ -19,6 +19,17 @@ export class Program {
       private readonly head: Ir = new Prelude();
       private tail: Ir = this.head;
       private readonly linearGraph: Ir[] = [];
+
+      public static fromBasicBlocks(blocks: BasicBlock<Ir>[]) {
+            const program = new Program();
+
+            for (const bb of blocks) {
+                  for (const ir of bb.instructions) {
+                        program.addInstruction(ir);
+                  }
+            }
+            return program;
+      }
       
       /**
        * Append an `Ir` to the program and link it as a successor

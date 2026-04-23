@@ -31,7 +31,7 @@ export class DTOperator implements FlowOperator<Set<BasicBlock<Ir>>> {
 
 export class DominanceTree {
       private readonly dominators: Map<BasicBlock<Ir>, Set<BasicBlock<Ir>>>;
-      constructor(private readonly blocks: BasicBlock<Ir>[]) {
+      constructor(public readonly blocks: BasicBlock<Ir>[]) {
             const {output} = new DataflowAnalyzer<Set<BasicBlock<Ir>>>(blocks).forwardAnalysis(new DTOperator(blocks), new Set([blocks[0]]));
             this.dominators = output;
       }

@@ -1,4 +1,5 @@
 import type { View } from '../view/view.d.ts';
+import { BasicBlock, } from './basic_block.ts';
 export abstract class Ir implements View {
       private static ID = 0;
       public readonly index = ++Ir.ID;
@@ -8,6 +9,17 @@ export abstract class Ir implements View {
       public addNext(ir: Ir) {
             this.next.add(ir);
             ir.addPredecessor(this);
+      }
+      private removeNext(ir: Ir) {
+            this.next.delete(ir);
+            ir.previous.delete(this);
+      }
+      public addBefore(ir: Ir) {
+            for (const pp of this.previous) {
+                  pp.removeNext(this);
+                  pp.addNext(ir);
+            }
+            ir.addNext(this);
       }
       protected addPredecessor(ir: Ir) {
             this.previous.add(ir);
@@ -26,6 +38,12 @@ export abstract class Ir implements View {
       public getUsedVariables(): Symbol[] {
             return [];
       }
+      public replaceUse(symbol: Symbol, replace: Symbol) {
+            // need to be override by class that need it
+      }
+      public replaceAssignment(symbol: Symbol, replace: Symbol) {
+            // need to be override by class that need it
+      }
       public getAssignedVariables(): Symbol[] {
             return [];
       }
@@ -37,10 +55,10 @@ export abstract class Ir implements View {
 export class Symbol extends Ir {
       private static UNIQUE = 0;
       private static readonly map: Map<string, Symbol> = new Map()
-      public static new() {
-            let symbol = `s${++this.UNIQUE}`;
+      public static new(prefix: string = 's') {
+            let symbol = `${prefix}${++this.UNIQUE}`;
             while (this.map.has(symbol)) {
-                  symbol = `s${++this.UNIQUE}`;
+                  symbol = `${prefix}${++this.UNIQUE}`;
             }
             return this.from(symbol);
       }
@@ -80,9 +98,6 @@ export class Ret extends Ir {
       constructor(protected readonly value: Symbol) {
             super();
       }
-      public override getUsedVariables(): Symbol[] {
-            return [this.value];
-      }
       public override toString() {
             return `ret ${this.value.toString()}`
       }
@@ -110,57 +125,29 @@ export class Param extends Ir {
 }
 
 export class BinOp extends Ir {
-      constructor(protected readonly result: Symbol, protected readonly op1: Symbol, protected readonly op2: Symbol) {
+      constructor(protected result: Symbol, protected op1: Symbol, protected op2: Symbol) {
             super();
       }
       public override toString() {
-            return `op ${this.result.toString()}, ${this.op1.toString()}, ${this.op2.toString()}`
+            return `bin_op::Prototype ${this.result.toString()}, ${this.op1.toString()}, ${this.op2.toString()}`
+      }
+      public override replaceUse(symbol: Symbol, replace: Symbol): void {
+            if (symbol == this.op1) {
+                  this.op1 = replace;
+            } else if (symbol == this.op2) {
+                  this.op2 = replace;
+            }
+      }
+      public override replaceAssignment(symbol: Symbol, replace: Symbol): void {
+            if (this.result == symbol) {
+                  this.result = replace;
+            }
       }
       public override getUsedVariables(): Symbol[] {
             return [this.op1, this.op2];
       }
       public override getAssignedVariables(): Symbol[] {
             return [this.result];
-      }
-}
-export class Add extends BinOp {
-      public override toString() {
-            return `add ${this.result.toString()}, ${this.op1.toString()}, ${this.op2.toString()}`
-      }
-}
-export class Sub extends BinOp {
-      public override toString() {
-            return `sub ${this.result.toString()}, ${this.op1.toString()}, ${this.op2.toString()}`
-      }
-}
-export class Mul extends BinOp {
-      public override toString() {
-            return `mul ${this.result.toString()}, ${this.op1.toString()}, ${this.op2.toString()}`
-      }
-}
-export class Div extends BinOp {
-      public override toString() {
-            return `div ${this.result.toString()}, ${this.op1.toString()}, ${this.op2.toString()}`
-      }
-}
-export class FAdd extends BinOp {
-      public override toString() {
-            return `fadd ${this.result.toString()}, ${this.op1.toString()}, ${this.op2.toString()}`
-      }
-}
-export class FSub extends BinOp {
-      public override toString() {
-            return `fsub ${this.result.toString()}, ${this.op1.toString()}, ${this.op2.toString()}`
-      }
-}
-export class FMul extends BinOp {
-      public override toString() {
-            return `fmul ${this.result.toString()}, ${this.op1.toString()}, ${this.op2.toString()}`
-      }
-}
-export class FDiv extends BinOp {
-      public override toString() {
-            return `fdiv ${this.result.toString()}, ${this.op1.toString()}, ${this.op2.toString()}`
       }
 }
 export class Func extends Ir {
@@ -179,10 +166,16 @@ export class Func extends Ir {
       public override getUsedVariables(): Symbol[] {
             return this.body.flatMap(ir => ir.getUsedVariables());
       }
+      public override replaceUse(symbol: Symbol, replace: Symbol): void {
+            this.body.forEach(ir => ir.replaceUse(symbol, replace));
+      }
+      public override replaceAssignment(symbol: Symbol, replace: Symbol): void {
+            this.body.forEach(ir => ir.replaceAssignment(symbol, replace))
+      }
 }
 export class Branch extends Ir {
       protected override isJump = true;
-      constructor(protected readonly label: Label, protected readonly condition: Symbol) {
+      constructor(protected readonly label: Label, protected condition: Symbol) {
             super();
             this.addNext(label);
       }
@@ -191,6 +184,11 @@ export class Branch extends Ir {
       }
       public override getUsedVariables(): Symbol[] {
             return [this.condition];
+      }
+      public override replaceUse(symbol: Symbol, replace: Symbol): void {
+            if (this.condition == symbol) {
+                  this.condition = replace;
+            }
       }
 }
 export class Jump extends Ir {
@@ -207,17 +205,41 @@ export class Jump extends Ir {
       }
 }
 export class Assign extends Ir {
-      constructor(protected readonly assigned: Symbol, protected readonly value: Symbol) {
+      constructor(protected assigned: Symbol, protected value: Symbol) {
             super();
       }
       public override toString() {
             return `${this.assigned.toString()} = ${this.value.toString()}`
+      }
+      public override replaceUse(symbol: Symbol, replace: Symbol): void {
+            if (this.value == symbol) {
+                  this.value = replace;
+            }
+      }
+      public override replaceAssignment(symbol: Symbol, replace: Symbol): void {
+            if (this.assigned == symbol) {
+                  this.assigned = replace;
+            }
       }
       public override getUsedVariables(): Symbol[] {
             return [this.value];
       }
       public override getAssignedVariables(): Symbol[] {
             return [this.assigned];
+      }
+}
+
+export class Phi extends Ir {
+      private readonly definitions: Map<BasicBlock<Ir>, Symbol> = new Map();
+      constructor(public variable: Symbol) {
+            super();
+      }
+
+      public addValue(definition: BasicBlock<Ir>, symbol: Symbol) {
+            this.definitions.set(definition, symbol);
+      }
+      public override toString(): string {
+            return `phi ${this.variable} [${this.definitions.entries().map(([k,v]) => `${k.toBlockName()} ${v.toString()}`).toArray().join()}]`
       }
 }
 
@@ -231,4 +253,4 @@ export class Prelude extends Ir {
       public override toString() {
             return `main:`
       }
-}
+} 
