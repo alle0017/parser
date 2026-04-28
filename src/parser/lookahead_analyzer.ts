@@ -1,7 +1,9 @@
+import { CyclicReferenceError } from "../exceptions/index.ts";
 import { RRule, PRule } from "./index.d.ts";
 import { Reducer } from "./reducer.ts";
 
 const SetConstructor = () => new Set<any>();
+const setEq = (a: Set<unknown>, b: Set<unknown>) => a.size == b.size && a.difference(b).size == 0;
 export class LookaheadAnalyzer {
       private readonly starters: Map<string, Set<string>> = new Map();
       private readonly terminators: Map<string, Set<string>> = new Map();
@@ -78,6 +80,10 @@ export class LookaheadAnalyzer {
                         this.terminators.set(token, set.values().map(dependency => dependency == token ? empty: this.terminators.get(dependency)!).reduce((p,c) => p.union(c), empty));
                         ruleTokens.delete(token);
                   });
+
+                  if (setEq(cpy, ruleTokens)) {
+                        throw new CyclicReferenceError(ruleTokens);
+                  }
             }      
       }
       private addLookahead(token: string, lookahead: string) {

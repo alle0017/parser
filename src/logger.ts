@@ -1,3 +1,5 @@
+import { writeFileSync } from "node:fs";
+
 const LogConstructor = (name: string) => new Logger(name);
 export class Logger {
       private static readonly loggers: Map<string,Logger> = new Map();
@@ -24,10 +26,14 @@ export class Logger {
       public log(...values: unknown[]) {
             const now = performance.now();
 
-            this.history.push(`[${this.name};${now}] ${values.map(v => v?.toString()).join('')}`);
+            this.history.push(`[${this.name};${now}] ${values.join('')}`);
 
             if (this.enabled) {
                   console.log(this.history.at(-1)!);
             }
+      }
+
+      public print() {
+            writeFileSync(`./${this.name}.log`, this.history.join('\n'));
       }
 }

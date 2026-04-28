@@ -54,8 +54,6 @@ class ComputationResult {
 class Computation {
       private readonly decisions: Computation[] = [];
       private state: number = 0;
-      private static id = 0;
-      public readonly id = Computation.id++;
       /**
        * Construct a reducer.
        *
@@ -196,7 +194,6 @@ class Computation {
             }
             this.stack.push(this.missing.at(-1)!);
             this.analyzeStack({ type: Reducer.NULL, $: Reducer.NULL });
-
             return this.getResult();
       }
 }
