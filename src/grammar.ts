@@ -1,4 +1,4 @@
-import type { PRule, RRule } from "./parser/index.d.ts";
+import type { PRule, RRule, Token } from "./parser/index.d.ts";
 import { Tokenizer } from './parser/tokenizer.ts';
 import { PMachine } from './parser/index.d.ts';
 import { Reducer } from './parser/reducer.ts';
@@ -26,12 +26,20 @@ export class GrammarApplication {
             this.diagnostics = new Diagnostics(writer);
       }
 
+      private printTree(tokens: Token[], tab: string = '') {
+            for (const token of tokens) {
+                  console.log(`${tab}${token.type}[${token.$}]`);
+                  if (Array.isArray(token.$)) {
+                        this.printTree(token.$, tab + ' ')
+                  }
+            }
+      }
       public addGrammar(grammar: Class<Grammar>): this {
             this.grammars.push(grammar);
             return this;
       }
 
-      public execute(code: string) {
+      public execute(code: string, print: boolean = false) {
             const machine: PMachine = {};
             const rules: PRule[] = [];
             const program = new Program();
@@ -46,6 +54,11 @@ export class GrammarApplication {
             }
             const tokens = new Tokenizer(code).execute(GrammarApplication.INITIAL_STATE, machine).getTranslation();
             const ast = new Reducer(this.axiom, grammars.flatMap(gram => gram.getReductionRules()), rules).reduce(tokens);
+
+            if (print) {
+                  this.printTree(ast);
+            }
+            
             for (let i = 0; i < grammars.length; i++) {
                   grammars[i].convert(this.converter);
             }

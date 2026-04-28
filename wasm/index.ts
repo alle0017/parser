@@ -1,30 +1,41 @@
-import { BaseGrammar } from './lang/base_grammar.ts';
-import { FunctionGrammar } from "./lang/function_grammar.ts";
 import { OperatorGrammar } from "./lang/operator_grammar.ts";
-import { BBMermaid } from "../src/view/bb_mermaid.ts";
-import { Ir, } from "../src/ast/ir.ts";
-import { DataflowAnalyzer } from "../src/dataflow/dataflow_analyzer.ts";
-import { DTOperator } from "../src/dataflow/dt_operator.ts";
-import { BasicBlock } from "../src/ast/basic_block.ts";
+import { MermaidBBConverter } from "../src/view/bb_mermaid.ts";
 import { useSyntax, } from './grammar_gen.ts';
+import { SSAConverter } from '../src/dataflow/ssa_conversion.ts';
 
-const app = useSyntax().addGrammar(FunctionGrammar).addGrammar(OperatorGrammar).addGrammar(BaseGrammar);
+const app = useSyntax().addGrammar(OperatorGrammar)
 
 
 
-const program = app.execute('fn main(arg1: i8, arg2: i16): i32 { x = arg1 + arg2; y = 6 + x }');
+const program = app.execute(`
+struct Pair { first: T, second: T }
 
+fn sum_pair(p: Pair): i32 {
+  const a: i32 = p.first;
+  const b: i32 = p.second;
+  a + b
+}
+
+fn make_pair(x: i32, y: i32): Pair {
+  Pair { first: x, second: y }
+}
+
+fn main(): i32 {
+  const v: i32 = 10;
+  const w: i32 = 20;
+
+  const p: Pair = make_pair(v, w);
+
+  const arr: i32 = [1, 2, 3][1];
+
+  const result: i32 = sum_pair(p) + arr * 2;
+
+  if (result > 10 && v < w) {
+    result
+  } else {
+    0
+  }
+}`, true);
 const bb = program.toBasicBlocks();
-console.log(new BBMermaid().viewBasicBlocks(bb))
-
-const {input, output} = new DataflowAnalyzer<Set<BasicBlock<Ir>>>(bb).forwardAnalysis(new DTOperator(bb), new Set([bb[0]]));
-
-console.log('\n\n\nINPUT\n\n')
-
-for (const [block, set] of input) {
-      console.log(block.toBlockName(), [...set].map(s => s.toBlockName()).join());
-}
-console.log('\n\n\nOUTPUT\n\n')
-for (const [block, set] of output) {
-      console.log(block.toBlockName(), [...set].map(s => s.toBlockName()).join());
-}
+new SSAConverter(bb).toSSA()
+console.log(new MermaidBBConverter().toString(bb))

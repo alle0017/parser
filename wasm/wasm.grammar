@@ -2,35 +2,153 @@ axiom EXPRESSION_LIST
 
 skip '[ \t\n\r]+'
 
+
 token NUM        '[0-9]+(\.[0-9]+)?'
+token STRING     '"[^"]*"'
+
 token TYPE       'i32|f32|string|i8|i16|u8|u16|u32|u64|f64|i64'
+
 token FN         'fn'
-token OPERATOR   '\+|-|\*|\/|%'
+token STRUCT     'struct'
+token CONST      'const'
+token RETURN     'return'
+
+token IF         'if'
+token ELSE       'else'
+token WHILE      'while'
+
+token AND        '&&'
+token OR         '||'
+token NOT        '!'
+
+token GT         '>'
+token LT         '<'
+token GE         '>='
+token LE         '<='
+token EQ         '=='
+
+token PLUS       '\+'
+token MINUS      '-'
+token MUL        '\*'
+token DIV        '\/'
+token MOD        '%'
+
 token ASSIGN     '='
 token ID         '[a-zA-Z][a-zA-Z0-9_]*'
+
 token LEFT_BRACKET    '{'
 token RIGHT_BRACKET   '}'
 token LEFT_PAR        '\('
 token RIGHT_PAR       '\)'
 token LEFT_SQUARE     '\['
 token RIGHT_SQUARE    '\]'
+
 token COLUMN          ':'
 token SEMI_COLUMN     ';'
 token COMMA           ','
 token DOT             '\.'
 
-reduction ARG          "ID COLUMN TYPE"
-reduction ARG_LIST     "ARG | ARG_LIST COMMA ARG"
-reduction FUNCTION     "FN ID LEFT_PAR ARG_LIST RIGHT_PAR COLUMN TYPE CODE_BLOCK
-                       | FN ID LEFT_PAR RIGHT_PAR COLUMN TYPE CODE_BLOCK"
-reduction OPERATION    "ID OPERATOR ID
-                       | NUM OPERATOR ID
-                       | NUM OPERATOR NUM
-                       | ID OPERATOR NUM
-                       | OPERATION OPERATOR ID
-                       | OPERATION OPERATOR NUM"
-reduction OPERATION_EXPR      "ID ASSIGN OPERATION"
-reduction OPERATION_EXPR_LIST "OPERATION_EXPR | OPERATION_EXPR_LIST SEMI_COLUMN OPERATION_EXPR"
-reduction EXPRESSION   "FUNCTION | OPERATION_EXPR_LIST"
-reduction EXPRESSION_LIST "EXPRESSION | EXPRESSION_LIST EXPRESSION"
-reduction CODE_BLOCK   "LEFT_BRACKET EXPRESSION_LIST RIGHT_BRACKET"
+
+
+reduction TYPE_REF        "TYPE
+                           | ID"
+
+
+reduction FIELD          "ID COLUMN TYPE_REF"
+reduction FIELD_LIST     "FIELD | FIELD_LIST COMMA FIELD"
+
+reduction STRUCT_DEF     "STRUCT ID LEFT_BRACKET FIELD_LIST RIGHT_BRACKET"
+
+
+reduction ARG            "ID COLUMN TYPE_REF"
+reduction ARG_LIST       "ARG | ARG_LIST COMMA ARG"
+
+reduction FUNCTION       "FN ID LEFT_PAR ARG_LIST RIGHT_PAR COLUMN TYPE_REF CODE_BLOCK
+                          | FN ID LEFT_PAR RIGHT_PAR COLUMN TYPE_REF CODE_BLOCK"
+
+
+reduction VECTOR_LITERAL       "LEFT_SQUARE RIGHT_SQUARE
+                                | LEFT_SQUARE EXPR_LIST RIGHT_SQUARE"
+
+reduction EXPR_LIST           "EXPR | EXPR_LIST COMMA EXPR"
+
+reduction FIELD_VALUE         "ID COLUMN EXPR"
+reduction FIELD_VALUE_LIST    "FIELD_VALUE | FIELD_VALUE_LIST COMMA FIELD_VALUE"
+
+reduction STRUCT_LITERAL      "ID LEFT_BRACKET FIELD_VALUE_LIST RIGHT_BRACKET"
+
+reduction FUNCTION_CALL       "ID LEFT_PAR RIGHT_PAR
+                               | ID LEFT_PAR EXPR_LIST RIGHT_PAR"
+
+reduction PRIMARY             "NUM
+                               | STRING
+                               | ID
+                               | FUNCTION_CALL
+                               | STRUCT_LITERAL
+                               | VECTOR_LITERAL
+                               | LEFT_PAR EXPR RIGHT_PAR"
+
+
+reduction ACCESS              "PRIMARY
+                               | ACCESS DOT ID
+                               | ACCESS LEFT_SQUARE EXPR RIGHT_SQUARE"
+
+
+reduction UNARY               "ACCESS
+                               | NOT UNARY
+                               | MINUS UNARY"
+
+
+reduction MUL_EXPR            "UNARY
+                               | MUL_EXPR MUL UNARY
+                               | MUL_EXPR DIV UNARY
+                               | MUL_EXPR MOD UNARY"
+
+reduction ADD_EXPR            "MUL_EXPR
+                               | ADD_EXPR PLUS MUL_EXPR
+                               | ADD_EXPR MINUS MUL_EXPR"
+
+reduction CMP_EXPR            "ADD_EXPR
+                               | CMP_EXPR GT ADD_EXPR
+                               | CMP_EXPR LT ADD_EXPR
+                               | CMP_EXPR GE ADD_EXPR
+                               | CMP_EXPR LE ADD_EXPR"
+
+reduction EQ_EXPR             "CMP_EXPR
+                               | EQ_EXPR EQ CMP_EXPR"
+
+reduction AND_EXPR            "EQ_EXPR
+                               | AND_EXPR AND EQ_EXPR"
+
+reduction OR_EXPR             "AND_EXPR
+                               | OR_EXPR OR AND_EXPR"
+
+reduction EXPR                "OR_EXPR"
+
+
+reduction CONST_DECL          "CONST ID COLUMN TYPE_REF ASSIGN EXPR"
+
+reduction IF_EXPR             "IF LEFT_PAR EXPR RIGHT_PAR CODE_BLOCK
+                               | IF LEFT_PAR EXPR RIGHT_PAR CODE_BLOCK ELSE CODE_BLOCK"
+
+reduction WHILE_EXPR          "WHILE LEFT_PAR EXPR RIGHT_PAR CODE_BLOCK"
+
+
+reduction STATEMENT           "CONST_DECL
+                               | FUNCTION_CALL
+                               | IF_EXPR
+                               | WHILE_EXPR
+                               | EXPR"
+
+reduction STATEMENT_LIST      "STATEMENT
+                               | STATEMENT_LIST SEMI_COLUMN STATEMENT"
+
+
+reduction CODE_BLOCK          "LEFT_BRACKET STATEMENT_LIST RIGHT_BRACKET"
+
+reduction EXPRESSION          "FUNCTION
+                               | STRUCT_DEF
+                               | STATEMENT_LIST"
+
+reduction EXPRESSION_LIST     "EXPRESSION
+                               | EXPRESSION_LIST EXPRESSION"
