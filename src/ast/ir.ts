@@ -94,36 +94,14 @@ export class Label extends Ir {
             return `$${this.value}`;
       }
 }
-export class Ret extends Ir {
-      constructor(protected readonly value: Symbol) {
-            super();
-      }
-      public override toString() {
-            return `ret ${this.value.toString()}`
-      }
-}
-
 export class Call extends Ir {
-      constructor(protected readonly func: Symbol) {
+      constructor(protected readonly result: Symbol, protected readonly func: Symbol, protected readonly args: Ir[]) {
             super();
       }
       public override toString() {
-            return `call ${this.func.toString()}`
+            return `${this.result} := call ${this.func.toString()} [${this.args.map(arg => arg.toString()).join(',')}]`
       }
 }
-
-export class Param extends Ir {
-      constructor(protected readonly value: Symbol) {
-            super();
-      }
-      public override getUsedVariables(): Symbol[] {
-            return [this.value];
-      }
-      public override toString() {
-            return `param ${this.value.toString()}`
-      }
-}
-
 export class BinOp extends Ir {
       constructor(protected result: Symbol, protected op1: Symbol, protected op2: Symbol) {
             super();
@@ -151,26 +129,11 @@ export class BinOp extends Ir {
       }
 }
 export class Func extends Ir {
-      constructor(protected readonly name: TypedSymbol, protected readonly args: TypedSymbol[], protected readonly body: Ir[]) {
+      constructor(protected readonly name: TypedSymbol, protected readonly args: TypedSymbol[]) {
             super();
-            for (let i = 0; i < body.length - 1; i++) {
-                  body[i].addNext(body[i + 1]);
-            }
       }
       public override toString() {
-            return `fn ${this.name.toString()} ${this.args.map(arg => arg.toString()).join(',')}{\n${this.body.map(ir => ir.toString()).join('\n')}}`
-      }
-      public override getAssignedVariables(): Symbol[] {
-            return this.body.flatMap(ir => ir.getAssignedVariables());
-      }
-      public override getUsedVariables(): Symbol[] {
-            return this.body.flatMap(ir => ir.getUsedVariables());
-      }
-      public override replaceUse(symbol: Symbol, replace: Symbol): void {
-            this.body.forEach(ir => ir.replaceUse(symbol, replace));
-      }
-      public override replaceAssignment(symbol: Symbol, replace: Symbol): void {
-            this.body.forEach(ir => ir.replaceAssignment(symbol, replace))
+            return `fn ${this.name.toString()} ${this.args.map(arg => arg.toString()).join(',')}:`
       }
 }
 export class Branch extends Ir {
@@ -191,44 +154,6 @@ export class Branch extends Ir {
             }
       }
 }
-export class Jump extends Ir {
-      protected override isJump = true;
-      constructor(protected readonly label: Label) {
-            super();
-            super.addNext(label);
-      }
-      public override addNext(ir: Ir): void {
-            // no operation
-      }
-      public override toString() {
-            return `j ${this.label.toString()}`
-      }
-}
-export class Assign extends Ir {
-      constructor(protected assigned: Symbol, protected value: Symbol) {
-            super();
-      }
-      public override toString() {
-            return `${this.assigned.toString()} = ${this.value.toString()}`
-      }
-      public override replaceUse(symbol: Symbol, replace: Symbol): void {
-            if (this.value == symbol) {
-                  this.value = replace;
-            }
-      }
-      public override replaceAssignment(symbol: Symbol, replace: Symbol): void {
-            if (this.assigned == symbol) {
-                  this.assigned = replace;
-            }
-      }
-      public override getUsedVariables(): Symbol[] {
-            return [this.value];
-      }
-      public override getAssignedVariables(): Symbol[] {
-            return [this.assigned];
-      }
-}
-
 export class Phi extends Ir {
       private readonly definitions: Map<BasicBlock<Ir>, Symbol> = new Map();
       constructor(public variable: Symbol) {
@@ -239,7 +164,7 @@ export class Phi extends Ir {
             this.definitions.set(definition, symbol);
       }
       public override toString(): string {
-            return `phi ${this.variable} [${this.definitions.entries().map(([k,v]) => `${k.toBlockName()} ${v.toString()}`).toArray().join()}]`
+            return `phi (${this.variable}) [${this.definitions.entries().map(([k,v]) => `${k.toBlockName()} ${v.toString()}`).toArray().join()}]`
       }
 }
 
