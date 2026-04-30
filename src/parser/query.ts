@@ -26,6 +26,9 @@ export function getAllChildrenOfType(token: RToken, type: string) {
 export function getFirstChildOfType(token: RToken, type: string) {
       return Optional.ofNullable(getAllChildrenOfType(token, type)[0]);
 }
+export function getNthChildOfType(token: RToken, n: number, type: string) {
+      return Optional.ofNullable(getAllChildrenOfType(token, type)[n]);
+}
 
 export function getFirstAsString(token: RToken, type: string) {
       return getFirstChildOfType(token, type).mapNullify(token => Array.isArray(token.$) ? null: token.$);

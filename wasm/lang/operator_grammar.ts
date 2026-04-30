@@ -1,5 +1,5 @@
 import { Converter } from "../../src/ast/converter.ts";
-import { BinOp, Ir, Symbol, Call, Func, TypedSymbol, } from "../../src/ast/ir.ts";
+import { BinOp, Ir, Symbol, Call, Func, TypedSymbol, Label, Branch, } from "../../src/ast/ir.ts";
 import { SemanticAction } from "../../grammar/semantic_action.ts";
 import { Tokens } from "../grammar_gen.ts";
 import {
@@ -7,10 +7,11 @@ import {
       getFirstChildOfType,
       asPToken,
       getLastChildOfType,
-      matches
+      matches,
+      getNthChildOfType
 } from "../../src/parser/query.ts";
-import { RToken, PToken } from "../../src/parser/index.d.ts";
-import { match } from "node:assert";
+import { RToken, } from "../../src/parser/index.d.ts";
+import { Jump } from "./tokens.ts";
 
 export class Assign extends Ir {
       constructor(private readonly target: Symbol, private readonly value: Symbol) {
@@ -34,6 +35,14 @@ class Unreachable extends Ir {
             return 'unreachable';
       }
 }
+class Ret extends Ir {
+      constructor(public readonly value: Symbol) {
+            super();
+      }
+      public override toString(): string {
+            return `ret ${this.value.toString()}`;
+      }
+}
 export class OperatorGrammar extends SemanticAction {
 
       public override convert(traverser: Converter<Ir[]>): void {
@@ -45,6 +54,14 @@ export class OperatorGrammar extends SemanticAction {
                   return self.convertAll(
                         keepChildrenOfTypes(token, Tokens.EXPRESSION_LIST, Tokens.EXPRESSION)
                   ).flat();
+            });
+            traverser.addRecursiveConversion(Tokens.STATEMENT_LIST, (self, token) => {
+                  return self.convertAll(
+                        keepChildrenOfTypes(token, Tokens.STATEMENT_LIST, Tokens.STATEMENT)
+                  ).flat();
+            });
+            traverser.addRecursiveConversion(Tokens.STATEMENT, (self, token) => {
+                  return self.convertAll(token.$).flat();
             });
 
             // -----------------------------
@@ -71,7 +88,7 @@ export class OperatorGrammar extends SemanticAction {
 
             traverser.addRecursiveConversion(Tokens.CODE_BLOCK, (self, token) => {
                   return self.convertAll(
-                        keepChildrenOfTypes(token, Tokens.EXPRESSION_LIST, Tokens.EXPRESSION)
+                        keepChildrenOfTypes(token, Tokens.STATEMENT_LIST, Tokens.STATEMENT)
                   ).flat();
             });
 
@@ -89,19 +106,87 @@ export class OperatorGrammar extends SemanticAction {
                         new Unreachable(),
                   ]
             });
-            // -----------------------------
-            // ASSIGNMENT (const model compatible)
-            // -----------------------------
-            traverser.addRecursiveConversion(Tokens.ASSIGN, (self, token) => {
+            traverser.addRecursiveConversion(Tokens.COND_EXPR, (self, token) => {
 
-                  const name = token.$[0].$ as string;
+                  const endLabel = new Label('end_if');
+                  self.setContext('end_if', endLabel);
+                  
+                  return [
+                        ...self.convert(getFirstChildOfType(token, Tokens.IF_EXPR).get()),
+                        ...self.convert(getFirstChildOfType(token, Tokens.STATEMENT_LIST).get()),
+                        endLabel
+                  ];
+            });
+            traverser.addRecursiveConversion(Tokens.IF_EXPR, (self, token) => {
 
-                  const exprCode = self.convert(token.$[2]);
-                  const valueReg = self.getContext<Symbol>("expr_reg");
+                  const condReg = Symbol.from(token.$[2].$ as string);
+
+                  const elseLabel = new Label("else");
+
+                  let endLabel = self.getContext<Label>("end_if");
+                  const res: Ir[] = [];
+                  
+                  if (!endLabel) {
+                        endLabel = new Label('end_if');
+                        self.setContext('end_if', endLabel);
+                        res.push(endLabel);
+                  }
+
+                  return getFirstChildOfType(token, Tokens.IF_EXPR)
+                  .map(expr => self
+                              .convert(expr)
+                              .concat(
+                                    self
+                                    .convert(
+                                          getLastChildOfType(token, Tokens.IF_EXPR)
+                                          .get()
+                                    )))
+                  .orElseGet(() => [
+                              new Branch(elseLabel, condReg),
+                              ...self.convert(getFirstChildOfType(token, Tokens.STATEMENT_LIST).get()),
+                              new Jump(endLabel),
+                              elseLabel,
+                        ]
+                  ).concat(res);
+            });
+            traverser.addRecursiveConversion(Tokens.WHILE_EXPR, (self, token) => {
+
+                  const start = new Label("loop");
+                  const end = new Label("end_loop");
+
+                  const code: Ir[] = [
+                        start
+                  ];
+
+                  const condReg = Symbol.from(token.$[2].$ as string);
+
+                  code.push(
+                        new Branch(end, condReg), 
+                        ...self.convert(getFirstChildOfType(token, Tokens.STATEMENT_LIST).get()), 
+                        new Jump(start),
+                        end
+                  );
+
+                  return code;
+            });
+            traverser.addRecursiveConversion(Tokens.RET_EXPR, (self, token) => {
+                  const reg = Symbol.from(token.$[1].$ as string);
 
                   return [
-                        ...exprCode,
-                        new Assign(Symbol.from(name), valueReg)
+                        new Ret(reg)
+                  ];
+            });
+                        // -----------------------------
+            // ASSIGNMENT (const model compatible)
+            // -----------------------------
+            traverser.addRecursiveConversion(Tokens.CONST_DECL, (self, token) => {
+
+                  const name = token.$[1].$ as string;
+                  const reg = Symbol.from(token.$[3].$ as string);
+                  self.setContext("expr_reg", reg);
+
+                  return [
+                        new Assign(Symbol.from(name), reg)
                   ];
             });
             traverser.addRecursiveConversion(Tokens.STRUCT_DEF, (self, token: RToken) => {

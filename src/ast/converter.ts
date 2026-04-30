@@ -35,7 +35,7 @@ export class Converter<T> {
             const node = this.conversion.get(token.type);
 
             if (!node) {
-                  throw new TokenNotRecognizedError(token);
+                 throw new TokenNotRecognizedError(token);
             }
             
             return node(this, token)

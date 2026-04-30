@@ -1,6 +1,15 @@
 import { ReductionNotFoundError } from '../exceptions/index.ts';
 import type { RRule, PRule, Token, } from './index.d.ts';
 import { LookaheadAnalyzer } from './lookahead_analyzer.ts';
+export function printTree(tokens: Token[], tab: string = '') {
+      for (const token of tokens) {
+            console.log(`${tab}${token.type}[${token.$}]`);
+            if (Array.isArray(token.$)) {
+                  printTree(token.$, tab + '.')
+            }
+      }
+}
+
 /**
  * LR-style reducer that performs grammar reductions on a token stream.
  *
@@ -51,7 +60,7 @@ class ComputationResult {
       }
       private constructor(public readonly error: boolean, public readonly reduction: Token[]) {}
 }
-class Computation {
+export class Computation {
       private readonly decisions: Computation[] = [];
       private state: number = 0;
       /**
@@ -94,7 +103,6 @@ class Computation {
             if (!max) {
                   throw new ReductionNotFoundError();
             }
-
             for (const rule of set) {
                   if (rule !== max) {
                         this.decisions.push(this.fork(this.reduce(rule, [...this.stack])));

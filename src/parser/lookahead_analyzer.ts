@@ -54,6 +54,9 @@ export class LookaheadAnalyzer {
                         this.starters.set(token, set.values().map(dependency => dependency == token ? empty: this.starters.get(dependency)!).reduce((p,c) => p.union(c), empty));
                         ruleTokens.delete(token);
                   });
+                  if (setEq(cpy, ruleTokens)) {
+                        throw new CyclicReferenceError(ruleTokens);
+                  }
             }      
       }
       /**
@@ -94,8 +97,8 @@ export class LookaheadAnalyzer {
             const set = this.lookahead.getOrInsertComputed(token, SetConstructor);
             this.starters.get(lookahead)?.forEach(starter => set.add(starter));
       }
-      private getLookahead() {
-            const dependence: Map<string,Set<string>> = new Map();
+      private getDependence() {
+             const dependence: Map<string,Set<string>> = new Map();
 
             for (let i = 0; i < this.rules.length; i++) {
                   const rule = this.rules[i].rule;
@@ -105,22 +108,33 @@ export class LookaheadAnalyzer {
                   }
                   dependence.getOrInsertComputed(this.rules[i].reduction, SetConstructor).add(this.rules[i].rule.at(-1)!);
             }
+            return dependence;
+      }
+      private getLookahead() {
+            const dependence: Map<string,Set<string>> = this.getDependence();
             this.lookahead.getOrInsertComputed(this.axiom, SetConstructor).add(Reducer.NULL);
-            const stack = [this.axiom];
-            const seen: Set<string> = new Set(stack);
+            
+            let changed = true;
 
-            while (stack.length > 0) {
-                  const rule = stack.shift()!;
-                  const lookahead = this.lookahead.get(rule)!;
-                  const set = dependence.get(rule);
-                  lookahead.forEach(lookahead => set?.forEach(rule => this.lookahead.getOrInsertComputed(rule, SetConstructor).add(lookahead)));
-                  set?.forEach(rule => {
-                        if (seen.has(rule)) {
-                              return;
+            while (changed) {
+                  changed = false;
+                  for (const [rule, lookaheadSet] of this.lookahead) {
+                        const deps = dependence.get(rule);
+
+                        if (!deps) {
+                              continue;
                         }
-                        seen.add(rule);
-                        stack.push(rule);
-                  });
+
+                        for (const symbol of lookaheadSet) {
+                              for (const dep of deps) {
+                                    const target = this.lookahead.getOrInsertComputed(dep, SetConstructor);
+                                    if (!target.has(symbol)) {
+                                          target.add(symbol);
+                                          changed = true;
+                                    }
+                              }
+                        }
+                  }
             }
       }
 }
