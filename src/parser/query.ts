@@ -46,3 +46,6 @@ export function keepChildrenOfTypes(token: RToken, ...types: string[]) {
 export function hasXChildren(token: RToken, n: number) {
       return token.$.length == n;
 }
+export function hasChildOfType(token: RToken, type: string) {
+      return token.$.some(token => type == token.type);
+}

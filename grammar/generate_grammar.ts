@@ -67,14 +67,29 @@ class Reduction extends GrammarIr {
       public override toString(): string {
             return `@reduction ${this.id} ${this.regex.toString()}`;
       }
+      private expandOptionals(tokens: string[], result: string[][] = [[]], index: number = 0) {
+            let res: string[][] = [];
+
+            if (index >= tokens.length) {
+                  return result;
+            }
+            if (tokens[index].includes('?')) {
+                  res = res.concat(this.expandOptionals(tokens, result, index + 1));
+            }
+            res = res
+                  .concat(this.expandOptionals(tokens, result.map(str => [...str, tokens[index].replace('?', '')]), index + 1));
+            return res;
+      }
       override convert(syntax: Syntax): void {
-            const rules = this.regex.regex.split('|').map(rule => rule.split(' ').map(token => token.trim()).filter(tok => tok.length > 0));
-            
-            for (const rule of rules) {
-                  syntax.reductions.push({
-                        rule,
-                        reduction: this.id.value
-                  });
+            const rawRules = this.regex.regex.split('|').map(rule => rule.split(' ').map(token => token.trim()).filter(tok => tok.length > 0));
+            for (const rawRule of rawRules) {
+                  const expanded = this.expandOptionals(rawRule);
+                  for (const rule of expanded) {
+                        syntax.reductions.push({
+                              rule,
+                              reduction: this.id.value
+                        });
+                  }
             }
       }
 }
